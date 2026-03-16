@@ -1,0 +1,37 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/chamgei-core",
+    "crates/chamgei-audio",
+    "crates/chamgei-stt",
+    "crates/chamgei-llm",
+    "crates/chamgei-inject",
+    "crates/chamgei-hotkey",
+    "src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+authors = ["Tony Kipkemboi"]
+repository = "https://github.com/tonykipkemboi/chamgei"
+
+[workspace.dependencies]
+chamgei-core = { path = "crates/chamgei-core" }
+chamgei-audio = { path = "crates/chamgei-audio" }
+chamgei-stt = { path = "crates/chamgei-stt" }
+chamgei-llm = { path = "crates/chamgei-llm" }
+chamgei-inject = { path = "crates/chamgei-inject" }
+chamgei-hotkey = { path = "crates/chamgei-hotkey" }
+
+# Shared dependencies
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+thiserror = "2"
+reqwest = { version = "0.12", features = ["json"] }

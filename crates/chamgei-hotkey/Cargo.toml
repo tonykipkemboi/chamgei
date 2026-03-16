@@ -1,0 +1,13 @@
+[package]
+name = "chamgei-hotkey"
+description = "Global hotkey listener for Chamgei"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rdev = "0.5"
+tokio.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true

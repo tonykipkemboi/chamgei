@@ -1,0 +1,87 @@
+# Chamgei — Default Configuration
+# Copy to ~/.config/chamgei/config.toml and customize.
+
+# Hotkey activation mode: "push_to_talk" or "toggle"
+activation_mode = "push_to_talk"
+
+# Whisper model size: "tiny", "small", "medium", "large"
+whisper_model = "tiny"
+
+# VAD sensitivity — RMS energy above this = speech.
+# Lower = more sensitive. 0.01 works well for most mics.
+vad_threshold = 0.01
+
+# Text injection method: "clipboard" or "native"
+injection_method = "clipboard"
+
+# ─── LLM Providers ──────────────────────────────────────────
+# Providers are tried in order. If the first fails, it falls
+# back to the next. You can list as many as you want.
+#
+# Supported preset names (auto-resolve base URL):
+#   groq, cerebras, together, openrouter, fireworks, openai,
+#   anthropic, gemini, ollama, lm-studio, vllm
+#
+# For any other provider, set name = "custom" and provide base_url.
+
+[[providers]]
+name = "groq"
+api_key = ""                          # Get yours at console.groq.com
+model = "openai/gpt-oss-20b"
+
+# [[providers]]
+# name = "cerebras"
+# api_key = ""                        # Get yours at cerebras.ai
+# model = "llama3.1-8b"
+
+# [[providers]]
+# name = "together"
+# api_key = ""
+# model = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
+
+# [[providers]]
+# name = "openrouter"
+# api_key = ""
+# model = "meta-llama/llama-3.1-8b-instruct:free"
+
+# [[providers]]
+# name = "openai"
+# api_key = ""
+# model = "gpt-4o-mini"
+
+# [[providers]]
+# name = "anthropic"
+# api_key = ""                        # Get yours at console.anthropic.com
+# model = "claude-sonnet-4-20250514"
+
+# [[providers]]
+# name = "gemini"
+# api_key = ""                        # Get yours at aistudio.google.com
+# model = "gemini-2.0-flash"
+
+# ─── Local / Self-hosted (no API key needed) ────────────────
+
+# [[providers]]
+# name = "ollama"
+# model = "llama3.2:3b"
+
+# [[providers]]
+# name = "lm-studio"
+# model = "loaded-model"
+
+# [[providers]]
+# name = "vllm"
+# model = "meta-llama/Llama-3.1-8B-Instruct"
+
+# ─── Fully custom endpoint ──────────────────────────────────
+
+# [[providers]]
+# name = "my-server"
+# base_url = "https://my-llm-server.com/v1/chat/completions"
+# api_key = "my-secret-key"
+# model = "my-model"
+
+# ─── Legacy format (still works, but providers[] is preferred) ──
+# llm_provider = "groq"
+# groq_api_key = "gsk_..."
+# cerebras_api_key = "csk-..."
