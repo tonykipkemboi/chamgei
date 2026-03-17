@@ -365,11 +365,15 @@ fn print_banner(config: &ChamgeiConfig) {
         style("Provider").dim(),
         style(&provider_str).bold(),
     );
+    let stt_display = match config.stt_engine.to_lowercase().as_str() {
+        "groq" => "Groq Cloud Whisper Large v3".to_string(),
+        "deepgram" => "Deepgram Nova-2".to_string(),
+        _ => format!("{} (local, Metal GPU)", config.whisper_model),
+    };
     println!(
-        "  {}    {} {}",
-        style("Whisper").dim(),
-        style(&config.whisper_model).bold(),
-        style("(Metal GPU)").dim(),
+        "  {}        {}",
+        style("STT").dim(),
+        style(&stt_display).bold(),
     );
     println!(
         "  {}       {}",
