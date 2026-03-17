@@ -13,6 +13,45 @@ use thiserror::Error;
 use tracing::{debug, info};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
+/// Suppress whisper.cpp's C-level stderr output temporarily.
+/// Returns a guard that restores stderr when dropped.
+#[cfg(unix)]
+fn suppress_stderr() -> Option<SuppressStderr> {
+    use std::os::unix::io::AsRawFd;
+    let stderr_fd = std::io::stderr().as_raw_fd();
+    let saved_fd = unsafe { libc::dup(stderr_fd) };
+    if saved_fd < 0 {
+        return None;
+    }
+    let devnull = std::fs::OpenOptions::new()
+        .write(true)
+        .open("/dev/null")
+        .ok()?;
+    unsafe { libc::dup2(devnull.as_raw_fd(), stderr_fd) };
+    Some(SuppressStderr { saved_fd, stderr_fd })
+}
+
+#[cfg(unix)]
+struct SuppressStderr {
+    saved_fd: i32,
+    stderr_fd: i32,
+}
+
+#[cfg(unix)]
+impl Drop for SuppressStderr {
+    fn drop(&mut self) {
+        unsafe {
+            libc::dup2(self.saved_fd, self.stderr_fd);
+            libc::close(self.saved_fd);
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn suppress_stderr() -> Option<()> {
+    None
+}
+
 #[derive(Debug, Error)]
 pub enum SttError {
     #[error("model not found: {0}")]
@@ -114,9 +153,11 @@ impl LocalWhisperEngine {
         );
 
         let ctx_params = WhisperContextParameters::default();
+        let _guard = suppress_stderr(); // suppress whisper.cpp C-level output
         let ctx = WhisperContext::new_with_params(model_path, ctx_params).map_err(|e| {
             SttError::ModelNotFound(format!("failed to load whisper model at {}: {}", model_path, e))
         })?;
+        drop(_guard); // restore stderr
 
         info!("whisper model loaded successfully");
 
@@ -172,6 +213,7 @@ impl SttEngine for LocalWhisperEngine {
         );
 
         let start = Instant::now();
+        let _guard = suppress_stderr(); // suppress whisper.cpp/Metal C-level output
 
         // Create an independent state for this transcription call.
         // This allows concurrent transcriptions from different async tasks
