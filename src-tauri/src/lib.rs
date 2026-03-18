@@ -90,11 +90,38 @@ fn check_permissions() -> PermissionStatus {
     }
 }
 
-/// Open System Settings to the Microphone privacy pane.
+/// Request microphone access (triggers the macOS permission prompt) then
+/// open System Settings to the Microphone privacy pane.
 #[tauri::command]
 fn open_mic_settings() {
     #[cfg(target_os = "macos")]
     {
+        // First, attempt to access the mic so macOS shows Chamgei in the
+        // Microphone permission list. Without this, the app never appears.
+        std::thread::spawn(|| {
+            use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+            let host = cpal::default_host();
+            if let Some(device) = host.default_input_device() {
+                if let Ok(config) = device.default_input_config() {
+                    let stream_config: cpal::StreamConfig = config.into();
+                    // Open the stream briefly to trigger the permission prompt
+                    if let Ok(stream) = device.build_input_stream(
+                        &stream_config,
+                        |_data: &[f32], _: &cpal::InputCallbackInfo| {},
+                        |_err| {},
+                        None,
+                    ) {
+                        let _ = stream.play();
+                        std::thread::sleep(std::time::Duration::from_millis(200));
+                        // Stream drops here, closing the mic
+                    }
+                }
+            }
+        });
+
+        // Give the permission prompt a moment to appear
+        std::thread::sleep(std::time::Duration::from_millis(500));
+
         let _ = std::process::Command::new("open")
             .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
             .spawn();

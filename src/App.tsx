@@ -264,22 +264,21 @@ function SttStep({ state, update, onNext, onBack }: StepProps) {
       id: "local",
       name: "Local Whisper",
       icon: "shield",
-      desc: "Private — audio stays on your Mac",
+      desc: "Local — audio stays on your device",
       note: "Requires ~75MB download",
     },
     {
       id: "groq",
-      name: "Groq Cloud",
+      name: "Groq Whisper",
       icon: "lightning",
-      desc: "Fastest & most accurate",
+      desc: "Cloud — fast transcription",
       note: "Audio sent to Groq",
-      recommended: true,
     },
     {
       id: "deepgram",
-      name: "Deepgram",
+      name: "Deepgram Nova-2",
       icon: "target",
-      desc: "Most accurate",
+      desc: "Cloud — built-in punctuation",
       note: "Audio sent to Deepgram",
     },
   ];
@@ -1557,9 +1556,9 @@ function InferenceTab({ settings, update }: TabProps) {
           value={settings.sttEngine}
           onChange={(v) => update("sttEngine", v as Settings["sttEngine"])}
           options={[
-            { value: "local", label: "Local Whisper — private, audio stays on device" },
-            { value: "groq", label: "Groq Cloud Whisper — fastest, most accurate" },
-            { value: "deepgram", label: "Deepgram Nova-2 — most accurate" },
+            { value: "local", label: "[Local] Whisper — audio stays on device" },
+            { value: "groq", label: "[Cloud] Groq Whisper — audio sent to Groq" },
+            { value: "deepgram", label: "[Cloud] Deepgram Nova-2 — audio sent to Deepgram" },
           ]}
         />
       </Section>
