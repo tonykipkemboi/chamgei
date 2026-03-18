@@ -752,17 +752,19 @@ function PermissionsStep({ state, update, onNext, onBack }: StepProps) {
                 <StatusBadge granted={state.micGranted} />
               </div>
               <p className="text-xs text-[var(--text-secondary)] mb-2">
-                Required to capture your voice
+                Required to capture your voice. If Chamgei doesn't appear in the list, click the + button at the bottom and add it from Applications.
               </p>
               {!state.micGranted && (
-                <button
-                  onClick={() =>
-                    invoke("open_mic_settings").catch(() => {})
-                  }
-                  className="px-3 py-1.5 text-xs rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors cursor-pointer"
-                >
-                  Grant Access
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() =>
+                      invoke("open_mic_settings").catch(() => {})
+                    }
+                    className="px-3 py-1.5 text-xs rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors cursor-pointer"
+                  >
+                    Open Microphone Settings
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -955,6 +957,11 @@ function MicTestStep({ state: _state, update, onNext, onBack }: StepProps) {
       >
         Continue
       </button>
+      {!detected && (
+        <p className="text-center text-xs text-[var(--text-secondary)] mt-2">
+          Mic not working? You can skip this — the CLI uses your system mic via Terminal.
+        </p>
+      )}
     </div>
   );
 }
