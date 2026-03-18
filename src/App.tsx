@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type Tab = "general" | "inference" | "audio" | "hotkeys" | "history";
 
@@ -32,7 +34,1224 @@ const defaultSettings: Settings = {
   injectionMethod: "clipboard",
 };
 
+type SttEngine = "local" | "groq" | "deepgram";
+
+interface OnboardingState {
+  step: number;
+  sttEngine: SttEngine;
+  sttApiKey: string;
+  whisperModel: "tiny" | "small" | "medium" | "large";
+  llmProvider: string;
+  llmApiKey: string;
+  llmModel: string;
+  micGranted: boolean;
+  accessibilityGranted: boolean;
+  micWorking: boolean;
+  firstDictationDone: boolean;
+}
+
+const TOTAL_STEPS = 7;
+
+// ─── Root App ────────────────────────────────────────────────────────────────
+
 function App() {
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    invoke<boolean>("needs_onboarding")
+      .then((needs) => setShowOnboarding(needs))
+      .catch(() => setShowOnboarding(false));
+  }, []);
+
+  if (showOnboarding === null) {
+    return (
+      <div className="flex items-center justify-center h-screen text-sm text-[var(--text-secondary)]">
+        Loading...
+      </div>
+    );
+  }
+
+  if (showOnboarding) {
+    return <OnboardingWizard onComplete={() => setShowOnboarding(false)} />;
+  }
+
+  return <SettingsApp />;
+}
+
+// ─── Onboarding Wizard ──────────────────────────────────────────────────────
+
+function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
+  const [state, setState] = useState<OnboardingState>({
+    step: 1,
+    sttEngine: "groq",
+    sttApiKey: "",
+    whisperModel: "small",
+    llmProvider: "groq",
+    llmApiKey: "",
+    llmModel: "llama-3.3-70b-versatile",
+    micGranted: false,
+    accessibilityGranted: false,
+    micWorking: false,
+    firstDictationDone: false,
+  });
+
+  const [transitioning, setTransitioning] = useState(false);
+
+  const update = <K extends keyof OnboardingState>(
+    key: K,
+    value: OnboardingState[K]
+  ) => {
+    setState((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const goTo = (step: number) => {
+    setTransitioning(true);
+    setTimeout(() => {
+      update("step", step);
+      setTransitioning(false);
+    }, 200);
+  };
+
+  const next = () => goTo(state.step + 1);
+  const back = () => goTo(state.step - 1);
+
+  const renderStep = () => {
+    switch (state.step) {
+      case 1:
+        return <WelcomeStep onNext={next} />;
+      case 2:
+        return (
+          <SttStep state={state} update={update} onNext={next} onBack={back} />
+        );
+      case 3:
+        return (
+          <LlmStep state={state} update={update} onNext={next} onBack={back} />
+        );
+      case 4:
+        return (
+          <PermissionsStep
+            state={state}
+            update={update}
+            onNext={next}
+            onBack={back}
+          />
+        );
+      case 5:
+        return (
+          <MicTestStep
+            state={state}
+            update={update}
+            onNext={next}
+            onBack={back}
+          />
+        );
+      case 6:
+        return (
+          <TryItStep
+            state={state}
+            update={update}
+            onNext={next}
+            onBack={back}
+          />
+        );
+      case 7:
+        return (
+          <AllSetStep state={state} onComplete={onComplete} onBack={back} />
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-screen select-none bg-[var(--bg-primary)]">
+      <div className="flex-1 overflow-y-auto">
+        <div
+          className={transitioning ? "step-exit" : "step-active"}
+          key={state.step}
+        >
+          {renderStep()}
+        </div>
+      </div>
+      {/* Step indicator dots */}
+      <div className="flex justify-center gap-2 py-4">
+        {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+          <div
+            key={i}
+            className={`w-2 h-2 rounded-full transition-colors ${
+              i + 1 === state.step
+                ? "bg-[var(--accent)]"
+                : i + 1 < state.step
+                ? "bg-[var(--accent)] opacity-40"
+                : "bg-[var(--border)]"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 1: Welcome ────────────────────────────────────────────────────────
+
+function WelcomeStep({ onNext }: { onNext: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[80vh] px-8 text-center">
+      {/* App icon placeholder */}
+      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center mb-6 shadow-lg">
+        <svg
+          className="w-10 h-10 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+          />
+        </svg>
+      </div>
+
+      <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+        Chamgei
+      </h1>
+      <p className="text-lg text-[var(--text-secondary)] mb-8">
+        Privacy-first voice dictation
+      </p>
+
+      <button
+        onClick={onNext}
+        className="px-8 py-3 text-base font-semibold rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors cursor-pointer shadow-md"
+      >
+        Get Started
+      </button>
+
+      <span className="mt-4 text-xs text-[var(--text-secondary)] bg-[var(--bg-card)] border border-[var(--border)] rounded-full px-3 py-1">
+        No account needed
+      </span>
+    </div>
+  );
+}
+
+// ─── Step 2: STT Engine ─────────────────────────────────────────────────────
+
+interface StepProps {
+  state: OnboardingState;
+  update: <K extends keyof OnboardingState>(
+    key: K,
+    value: OnboardingState[K]
+  ) => void;
+  onNext: () => void;
+  onBack: () => void;
+}
+
+function SttStep({ state, update, onNext, onBack }: StepProps) {
+  const engines: {
+    id: SttEngine;
+    name: string;
+    icon: string;
+    desc: string;
+    note: string;
+    recommended?: boolean;
+  }[] = [
+    {
+      id: "local",
+      name: "Local Whisper",
+      icon: "shield",
+      desc: "Private — audio stays on your Mac",
+      note: "Requires ~75MB download",
+    },
+    {
+      id: "groq",
+      name: "Groq Cloud",
+      icon: "lightning",
+      desc: "Fastest & most accurate",
+      note: "Audio sent to Groq",
+      recommended: true,
+    },
+    {
+      id: "deepgram",
+      name: "Deepgram",
+      icon: "target",
+      desc: "Most accurate",
+      note: "Audio sent to Deepgram",
+    },
+  ];
+
+  const iconMap: Record<string, React.ReactNode> = {
+    shield: (
+      <svg
+        className="w-6 h-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+        />
+      </svg>
+    ),
+    lightning: (
+      <svg
+        className="w-6 h-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+        />
+      </svg>
+    ),
+    target: (
+      <svg
+        className="w-6 h-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+        <circle cx="12" cy="12" r="2" />
+      </svg>
+    ),
+  };
+
+  return (
+    <div className="px-8 py-6 max-w-lg mx-auto">
+      <button
+        onClick={onBack}
+        className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer mb-4"
+      >
+        &larr; Back
+      </button>
+      <h2 className="text-xl font-bold text-[var(--text-primary)] mb-1">
+        Speech-to-Text Engine
+      </h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-5">
+        Choose how your voice is transcribed
+      </p>
+
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {engines.map((eng) => {
+          const selected = state.sttEngine === eng.id;
+          return (
+            <button
+              key={eng.id}
+              onClick={() => update("sttEngine", eng.id)}
+              className={`relative p-4 rounded-lg border text-left transition-all cursor-pointer ${
+                selected
+                  ? "border-[var(--accent)] bg-[var(--bg-card)]"
+                  : "border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--accent)] opacity-70 hover:opacity-100"
+              }`}
+            >
+              {eng.recommended && (
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] bg-[var(--accent)] text-white px-2 py-0.5 rounded-full whitespace-nowrap">
+                  Recommended
+                </span>
+              )}
+              {selected && (
+                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[var(--accent)] flex items-center justify-center">
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4.5 12.75l6 6 9-13.5"
+                    />
+                  </svg>
+                </span>
+              )}
+              <div className="text-[var(--accent)] mb-2">
+                {iconMap[eng.icon]}
+              </div>
+              <div className="text-sm font-semibold text-[var(--text-primary)] mb-1">
+                {eng.name}
+              </div>
+              <div className="text-xs text-[var(--text-secondary)] mb-1">
+                {eng.desc}
+              </div>
+              <div className="text-[10px] text-[var(--text-secondary)] opacity-60">
+                {eng.note}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Cloud API key input */}
+      {(state.sttEngine === "groq" || state.sttEngine === "deepgram") && (
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+            {state.sttEngine === "groq" ? "Groq" : "Deepgram"} API Key
+          </label>
+          <input
+            type="password"
+            value={state.sttApiKey}
+            onChange={(e) => update("sttApiKey", e.target.value)}
+            placeholder={
+              state.sttEngine === "groq" ? "gsk_..." : "dg_..."
+            }
+            className="w-full px-3 py-2 rounded-lg bg-[var(--input-bg)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]"
+          />
+        </div>
+      )}
+
+      {/* Local model selector */}
+      {state.sttEngine === "local" && (
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+            Whisper Model Size
+          </label>
+          <div className="grid grid-cols-4 gap-2">
+            {(
+              ["tiny", "small", "medium", "large"] as const
+            ).map((size) => (
+              <button
+                key={size}
+                onClick={() => update("whisperModel", size)}
+                className={`px-3 py-2 text-sm rounded-lg border transition-colors cursor-pointer capitalize ${
+                  state.whisperModel === size
+                    ? "bg-[var(--accent)] border-[var(--accent)] text-white"
+                    : "bg-[var(--input-bg)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]"
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
+            Smaller models are faster but less accurate.
+          </p>
+        </div>
+      )}
+
+      <button
+        onClick={onNext}
+        className="w-full py-2.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold transition-colors cursor-pointer"
+      >
+        Continue
+      </button>
+    </div>
+  );
+}
+
+// ─── Step 3: LLM Provider ───────────────────────────────────────────────────
+
+const LLM_PROVIDERS = [
+  {
+    id: "groq",
+    name: "Groq",
+    desc: "Fast cloud inference",
+    defaultModel: "llama-3.3-70b-versatile",
+    recommended: true,
+    isLocal: false,
+  },
+  {
+    id: "ollama",
+    name: "Ollama",
+    desc: "Local, free, private",
+    defaultModel: "",
+    recommended: false,
+    isLocal: true,
+  },
+  {
+    id: "openai",
+    name: "OpenAI",
+    desc: "GPT-4o & more",
+    defaultModel: "gpt-4o-mini",
+    recommended: false,
+    isLocal: false,
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    desc: "Claude models",
+    defaultModel: "claude-sonnet-4-20250514",
+    recommended: false,
+    isLocal: false,
+  },
+  {
+    id: "gemini",
+    name: "Gemini",
+    desc: "Google AI models",
+    defaultModel: "gemini-2.0-flash",
+    recommended: false,
+    isLocal: false,
+  },
+  {
+    id: "cerebras",
+    name: "Cerebras",
+    desc: "Ultra-fast inference",
+    defaultModel: "llama-3.3-70b",
+    recommended: false,
+    isLocal: false,
+  },
+];
+
+function LlmStep({ state, update, onNext, onBack }: StepProps) {
+  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
+
+  const provider = LLM_PROVIDERS.find((p) => p.id === state.llmProvider);
+
+  useEffect(() => {
+    if (state.llmProvider === "ollama") {
+      invoke<string>("list_ollama_models")
+        .then((raw) => {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              setOllamaModels(parsed);
+              if (parsed.length > 0 && !state.llmModel) {
+                update("llmModel", parsed[0]);
+              }
+            }
+          } catch {
+            setOllamaModels([]);
+          }
+        })
+        .catch(() => setOllamaModels([]));
+    }
+  }, [state.llmProvider, state.llmModel, update]);
+
+  const selectProvider = (id: string) => {
+    const p = LLM_PROVIDERS.find((pr) => pr.id === id);
+    update("llmProvider", id);
+    update("llmApiKey", "");
+    if (p) update("llmModel", p.defaultModel);
+  };
+
+  return (
+    <div className="px-8 py-6 max-w-lg mx-auto">
+      <button
+        onClick={onBack}
+        className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer mb-4"
+      >
+        &larr; Back
+      </button>
+      <h2 className="text-xl font-bold text-[var(--text-primary)] mb-1">
+        LLM Provider
+      </h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-5">
+        Choose an LLM to clean up your transcriptions
+      </p>
+
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        {LLM_PROVIDERS.map((p) => {
+          const selected = state.llmProvider === p.id;
+          return (
+            <button
+              key={p.id}
+              onClick={() => selectProvider(p.id)}
+              className={`relative p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                selected
+                  ? "border-[var(--accent)] bg-[var(--bg-card)]"
+                  : "border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--accent)] opacity-70 hover:opacity-100"
+              }`}
+            >
+              {p.recommended && (
+                <span className="absolute -top-2 right-2 text-[10px] bg-[var(--accent)] text-white px-2 py-0.5 rounded-full">
+                  Recommended
+                </span>
+              )}
+              {selected && (
+                <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[var(--accent)] flex items-center justify-center">
+                  <svg
+                    className="w-2.5 h-2.5 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4.5 12.75l6 6 9-13.5"
+                    />
+                  </svg>
+                </span>
+              )}
+              <div className="w-8 h-8 rounded bg-[var(--bg-secondary)] border border-[var(--border)] flex items-center justify-center text-xs font-bold text-[var(--accent)] mb-2">
+                {p.name[0]}
+              </div>
+              <div className="text-sm font-semibold text-[var(--text-primary)]">
+                {p.name}
+              </div>
+              <div className="text-xs text-[var(--text-secondary)]">
+                {p.desc}
+              </div>
+              {p.isLocal && (
+                <span className="mt-1 inline-block text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
+                  Local &middot; Free
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* API key for cloud providers */}
+      {provider && !provider.isLocal && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+            {provider.name} API Key
+          </label>
+          <input
+            type="password"
+            value={state.llmApiKey}
+            onChange={(e) => update("llmApiKey", e.target.value)}
+            placeholder="Enter your API key..."
+            className="w-full px-3 py-2 rounded-lg bg-[var(--input-bg)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]"
+          />
+        </div>
+      )}
+
+      {/* Model input or Ollama dropdown */}
+      {state.llmProvider === "ollama" ? (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+            Ollama Model
+          </label>
+          {ollamaModels.length > 0 ? (
+            <select
+              value={state.llmModel}
+              onChange={(e) => update("llmModel", e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-[var(--input-bg)] border border-[var(--border)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
+            >
+              {ollamaModels.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-xs text-[var(--text-secondary)]">
+              No Ollama models found. Make sure Ollama is running.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">
+            Model Name
+          </label>
+          <input
+            type="text"
+            value={state.llmModel}
+            onChange={(e) => update("llmModel", e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-[var(--input-bg)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]"
+          />
+        </div>
+      )}
+
+      <button
+        onClick={onNext}
+        className="w-full py-2.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold transition-colors cursor-pointer mb-3"
+      >
+        Continue
+      </button>
+
+      <button
+        onClick={() => {
+          update("llmProvider", "none");
+          update("llmApiKey", "");
+          update("llmModel", "");
+          onNext();
+        }}
+        className="w-full text-center text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer py-1"
+      >
+        Skip — no LLM cleanup
+      </button>
+    </div>
+  );
+}
+
+// ─── Step 4: Permissions ────────────────────────────────────────────────────
+
+function PermissionsStep({ state, update, onNext, onBack }: StepProps) {
+  // Poll permissions every 2 seconds
+  useEffect(() => {
+    const poll = setInterval(() => {
+      invoke<{ mic: boolean; accessibility: boolean }>("check_permissions")
+        .then((perms) => {
+          update("micGranted", perms.mic);
+          update("accessibilityGranted", perms.accessibility);
+        })
+        .catch(() => {});
+    }, 2000);
+
+    // Check immediately on mount
+    invoke<{ mic: boolean; accessibility: boolean }>("check_permissions")
+      .then((perms) => {
+        update("micGranted", perms.mic);
+        update("accessibilityGranted", perms.accessibility);
+      })
+      .catch(() => {});
+
+    return () => clearInterval(poll);
+  }, [update]);
+
+  const bothGranted = state.micGranted && state.accessibilityGranted;
+
+  return (
+    <div className="px-8 py-6 max-w-lg mx-auto">
+      <button
+        onClick={onBack}
+        className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer mb-4"
+      >
+        &larr; Back
+      </button>
+      <h2 className="text-xl font-bold text-[var(--text-primary)] mb-1">
+        Permissions
+      </h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-5">
+        Chamgei needs two macOS permissions to work
+      </p>
+
+      <div className="space-y-3 mb-6">
+        {/* Microphone */}
+        <div className="p-4 rounded-lg bg-[var(--bg-card)] border border-[var(--border)]">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] shrink-0">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                  Microphone
+                </span>
+                <StatusBadge granted={state.micGranted} />
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mb-2">
+                Required to capture your voice
+              </p>
+              {!state.micGranted && (
+                <button
+                  onClick={() =>
+                    invoke("open_mic_settings").catch(() => {})
+                  }
+                  className="px-3 py-1.5 text-xs rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors cursor-pointer"
+                >
+                  Grant Access
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Accessibility */}
+        <div className="p-4 rounded-lg bg-[var(--bg-card)] border border-[var(--border)]">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] shrink-0">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                  Accessibility
+                </span>
+                <StatusBadge granted={state.accessibilityGranted} />
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mb-2">
+                Required to type text at your cursor
+              </p>
+              {!state.accessibilityGranted && (
+                <button
+                  onClick={() =>
+                    invoke("open_accessibility_settings").catch(() => {})
+                  }
+                  className="px-3 py-1.5 text-xs rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors cursor-pointer"
+                >
+                  Grant Access
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={onNext}
+        disabled={!bothGranted}
+        className={`w-full py-2.5 rounded-lg font-semibold transition-colors cursor-pointer ${
+          bothGranted
+            ? "bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white"
+            : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] cursor-not-allowed"
+        }`}
+      >
+        Continue
+      </button>
+
+      {!bothGranted && (
+        <button
+          onClick={onNext}
+          className="w-full text-center text-xs text-[var(--text-secondary)] opacity-50 hover:opacity-100 cursor-pointer py-2 mt-1"
+        >
+          Continue anyway
+        </button>
+      )}
+    </div>
+  );
+}
+
+function StatusBadge({ granted }: { granted: boolean }) {
+  if (granted) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full">
+        <svg
+          className="w-3 h-3"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={3}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4.5 12.75l6 6 9-13.5"
+          />
+        </svg>
+        Granted
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded-full">
+      <svg
+        className="w-3 h-3"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+        />
+      </svg>
+      Not granted
+    </span>
+  );
+}
+
+// ─── Step 5: Mic Test ───────────────────────────────────────────────────────
+
+function MicTestStep({ state: _state, update, onNext, onBack }: StepProps) {
+  const [levels, setLevels] = useState<number[]>(new Array(24).fill(0));
+  const [detected, setDetected] = useState(false);
+  const detectedTimeRef = useRef(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      invoke<number>("get_audio_level")
+        .then((level) => {
+          setLevels((prev) => {
+            const next = [...prev.slice(1), level];
+            return next;
+          });
+
+          if (level > 0.05) {
+            detectedTimeRef.current += 100;
+            if (detectedTimeRef.current >= 500 && !detected) {
+              setDetected(true);
+              update("micWorking", true);
+            }
+          } else {
+            detectedTimeRef.current = 0;
+          }
+        })
+        .catch(() => {});
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [detected, update]);
+
+  return (
+    <div className="px-8 py-6 max-w-lg mx-auto">
+      <button
+        onClick={onBack}
+        className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer mb-4"
+      >
+        &larr; Back
+      </button>
+      <h2 className="text-xl font-bold text-[var(--text-primary)] mb-1">
+        Mic Test
+      </h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-6">
+        Speak something to test your microphone
+      </p>
+
+      {/* Audio visualizer */}
+      <div className="flex items-end justify-center gap-1 h-32 mb-6 p-4 rounded-lg bg-[var(--bg-card)] border border-[var(--border)]">
+        {levels.map((level, i) => (
+          <div
+            key={i}
+            className="w-2 rounded-full bg-[var(--accent)] transition-all duration-100"
+            style={{
+              height: `${Math.max(4, level * 100)}%`,
+              opacity: 0.4 + level * 0.6,
+            }}
+          />
+        ))}
+      </div>
+
+      {detected ? (
+        <div className="mb-6 p-3 rounded-lg bg-green-400/10 border border-green-400/30 text-center">
+          <span className="text-sm font-semibold text-green-400">
+            Microphone working!
+          </span>
+        </div>
+      ) : (
+        <p className="text-center text-xs text-[var(--text-secondary)] mb-6">
+          Waiting for audio input...
+        </p>
+      )}
+
+      <button
+        onClick={onNext}
+        className="w-full py-2.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold transition-colors cursor-pointer"
+      >
+        Continue
+      </button>
+    </div>
+  );
+}
+
+// ─── Step 6: Try It ─────────────────────────────────────────────────────────
+
+function TryItStep({ state, update, onNext, onBack }: StepProps) {
+  const [phase, setPhase] = useState<
+    "idle" | "recording" | "processing" | "done"
+  >("idle");
+  const [result, setResult] = useState("");
+
+  // Poll pipeline status to detect recording/processing/done
+  useEffect(() => {
+    if (phase === "idle" || phase === "done") return;
+
+    const interval = setInterval(() => {
+      invoke<string>("get_pipeline_status")
+        .then((status) => {
+          if (status === "recording" && phase !== "recording") {
+            setPhase("recording");
+          } else if (status === "processing" && phase !== "processing") {
+            setPhase("processing");
+          } else if (status.startsWith("done:")) {
+            setResult(status.slice(5));
+            setPhase("done");
+            update("firstDictationDone", true);
+          }
+        })
+        .catch(() => {});
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [phase, update]);
+
+  // Start listening for pipeline status when user is supposed to try
+  useEffect(() => {
+    if (phase !== "idle") return;
+
+    const interval = setInterval(() => {
+      invoke<string>("get_pipeline_status")
+        .then((status) => {
+          if (status === "recording") {
+            setPhase("recording");
+          }
+        })
+        .catch(() => {});
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [phase]);
+
+  return (
+    <div className="px-8 py-6 max-w-lg mx-auto flex flex-col items-center min-h-[70vh] justify-center">
+      <button
+        onClick={onBack}
+        className="self-start text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer mb-4"
+      >
+        &larr; Back
+      </button>
+
+      {phase === "idle" && (
+        <>
+          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2 text-center">
+            Hold Fn and speak
+          </h2>
+          <p className="text-sm text-[var(--text-secondary)] mb-8 text-center">
+            Try your first dictation
+          </p>
+          {/* Pulsing Fn key */}
+          <div className="animate-pulse-ring w-20 h-20 rounded-xl bg-[var(--bg-card)] border-2 border-[var(--accent)] flex items-center justify-center mb-6">
+            <span className="text-2xl font-bold text-[var(--accent)]">Fn</span>
+          </div>
+        </>
+      )}
+
+      {phase === "recording" && (
+        <>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse-ring" />
+            <span className="text-lg font-semibold text-red-400">
+              Recording...
+            </span>
+          </div>
+          <p className="text-sm text-[var(--text-secondary)]">
+            Release Fn when you're done speaking
+          </p>
+        </>
+      )}
+
+      {phase === "processing" && (
+        <>
+          <div className="flex items-center gap-2 mb-4">
+            <svg
+              className="w-5 h-5 text-[var(--accent)] animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            <span className="text-lg font-semibold text-[var(--text-primary)]">
+              Processing...
+            </span>
+          </div>
+        </>
+      )}
+
+      {phase === "done" && (
+        <div className="w-full animate-confetti-pop">
+          <div className="text-center mb-4">
+            <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-400/20 mb-3">
+              <svg
+                className="w-6 h-6 text-green-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.5 12.75l6 6 9-13.5"
+                />
+              </svg>
+            </span>
+            <p className="text-lg font-bold text-[var(--text-primary)]">
+              Dictation works!
+            </p>
+          </div>
+          <div className="p-4 rounded-lg bg-[var(--bg-card)] border border-[var(--accent)] text-sm text-[var(--text-primary)] leading-relaxed">
+            {result}
+          </div>
+        </div>
+      )}
+
+      {(phase === "done" || state.firstDictationDone) && (
+        <button
+          onClick={onNext}
+          className="w-full mt-6 py-2.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold transition-colors cursor-pointer"
+        >
+          Continue
+        </button>
+      )}
+
+      {phase === "idle" && (
+        <button
+          onClick={onNext}
+          className="mt-8 text-xs text-[var(--text-secondary)] opacity-50 hover:opacity-100 cursor-pointer"
+        >
+          Skip for now
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Step 7: All Set ────────────────────────────────────────────────────────
+
+function AllSetStep({
+  state,
+  onComplete,
+  onBack,
+}: {
+  state: OnboardingState;
+  onComplete: () => void;
+  onBack: () => void;
+}) {
+  const handleFinish = async () => {
+    const config = JSON.stringify({
+      stt_engine: state.sttEngine,
+      stt_api_key: state.sttApiKey,
+      whisper_model: state.whisperModel,
+      llm_provider: state.llmProvider,
+      llm_api_key: state.llmApiKey,
+      llm_model: state.llmModel,
+    });
+
+    try {
+      await invoke("save_config", { config });
+    } catch {
+      // Config save failed, proceed anyway
+    }
+    onComplete();
+  };
+
+  const sttLabel =
+    state.sttEngine === "local"
+      ? `Local Whisper (${state.whisperModel})`
+      : state.sttEngine === "groq"
+      ? "Groq Cloud"
+      : "Deepgram";
+
+  const llmLabel =
+    state.llmProvider === "none"
+      ? "None (raw transcription)"
+      : `${state.llmProvider}${state.llmModel ? ` / ${state.llmModel}` : ""}`;
+
+  return (
+    <div className="px-8 py-6 max-w-lg mx-auto flex flex-col items-center min-h-[70vh] justify-center">
+      <button
+        onClick={onBack}
+        className="self-start text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer mb-4"
+      >
+        &larr; Back
+      </button>
+
+      {/* Success icon */}
+      <div className="w-16 h-16 rounded-full bg-green-400/20 flex items-center justify-center mb-4">
+        <svg
+          className="w-8 h-8 text-green-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={3}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4.5 12.75l6 6 9-13.5"
+          />
+        </svg>
+      </div>
+
+      <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
+        All Set!
+      </h2>
+      <p className="text-sm text-[var(--text-secondary)] mb-6">
+        Chamgei is ready to go
+      </p>
+
+      {/* Config summary */}
+      <div className="w-full p-4 rounded-lg bg-[var(--bg-card)] border border-[var(--border)] mb-6 text-sm space-y-2">
+        <div className="flex justify-between">
+          <span className="text-[var(--text-secondary)]">STT</span>
+          <span className="text-[var(--text-primary)] font-medium">
+            {sttLabel}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-[var(--text-secondary)]">LLM</span>
+          <span className="text-[var(--text-primary)] font-medium">
+            {llmLabel}
+          </span>
+        </div>
+        <div className="border-t border-[var(--border)] pt-2 mt-2 space-y-1">
+          <div className="flex justify-between text-xs">
+            <span className="text-[var(--text-secondary)]">Dictate</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--accent)] font-mono">
+              Fn
+            </kbd>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-[var(--text-secondary)]">Toggle</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--accent)] font-mono">
+              Fn + Space
+            </kbd>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-[var(--text-secondary)]">Command</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--accent)] font-mono">
+              Fn + Enter
+            </kbd>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs text-[var(--text-secondary)] text-center mb-1">
+        Chamgei will run in your menu bar.
+      </p>
+      <p className="text-xs text-[var(--text-secondary)] text-center mb-6">
+        Open Settings anytime from the menu bar icon.
+      </p>
+
+      <button
+        onClick={handleFinish}
+        className="w-full py-3 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold text-base transition-colors cursor-pointer shadow-md"
+      >
+        Start Chamgei
+      </button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Settings App (existing tabs for returning users)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function SettingsApp() {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
@@ -86,14 +1305,14 @@ function App() {
         {activeTab === "audio" && (
           <AudioTab settings={settings} update={update} />
         )}
-        {activeTab === "hotkeys" && <HotkeysTab settings={settings} />}
+        {activeTab === "hotkeys" && <HotkeysTab />}
         {activeTab === "history" && <HistoryTab />}
       </main>
     </div>
   );
 }
 
-// --- Tab Components ---
+// ─── Tab Components ─────────────────────────────────────────────────────────
 
 interface TabProps {
   settings: Settings;
@@ -225,7 +1444,7 @@ function AudioTab({ settings, update }: TabProps) {
   );
 }
 
-function HotkeysTab({ settings: _settings }: { settings: Settings }) {
+function HotkeysTab() {
   return (
     <div className="space-y-5">
       <Section title="Dictation Hotkey">
@@ -265,7 +1484,6 @@ async function copyToClipboard(text: string) {
   try {
     await invoke("copy_to_clipboard", { text });
   } catch {
-    // Fallback to navigator clipboard
     await navigator.clipboard.writeText(text);
   }
 }
@@ -281,7 +1499,6 @@ function HistoryTab() {
     try {
       const raw = await invoke<string>("get_history");
       const parsed: HistoryEntry[] = JSON.parse(raw);
-      // Newest first
       parsed.reverse();
       setEntries(parsed);
     } catch {
@@ -398,7 +1615,7 @@ function HistoryTab() {
   );
 }
 
-// --- Shared UI Components ---
+// ─── Shared UI Components ───────────────────────────────────────────────────
 
 function Section({
   title,
