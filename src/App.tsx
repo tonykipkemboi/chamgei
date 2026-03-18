@@ -16,9 +16,11 @@ interface HistoryEntry {
 
 interface Settings {
   activationMode: "push_to_talk" | "toggle";
+  sttEngine: "local" | "groq" | "deepgram";
   llmProvider: "cerebras" | "groq" | "local";
   groqApiKey: string;
   cerebrasApiKey: string;
+  deepgramApiKey: string;
   whisperModel: "tiny" | "small" | "medium" | "large";
   vadThreshold: number;
   injectionMethod: "clipboard" | "native";
@@ -26,8 +28,10 @@ interface Settings {
 
 const defaultSettings: Settings = {
   activationMode: "push_to_talk",
+  sttEngine: "local",
   llmProvider: "cerebras",
   groqApiKey: "",
+  deepgramApiKey: "",
   cerebrasApiKey: "",
   whisperModel: "small",
   vadThreshold: 0.5,
@@ -1363,14 +1367,38 @@ function GeneralTab({ settings, update }: TabProps) {
 function InferenceTab({ settings, update }: TabProps) {
   return (
     <div className="space-y-5">
-      <Section title="LLM Provider">
+      <Section title="Speech-to-Text Engine">
+        <Select
+          value={settings.sttEngine}
+          onChange={(v) => update("sttEngine", v as Settings["sttEngine"])}
+          options={[
+            { value: "local", label: "Local Whisper — private, audio stays on device" },
+            { value: "groq", label: "Groq Cloud Whisper — fastest, most accurate" },
+            { value: "deepgram", label: "Deepgram Nova-2 — most accurate" },
+          ]}
+        />
+      </Section>
+
+      {settings.sttEngine === "deepgram" && (
+        <Section title="Deepgram API Key">
+          <input
+            type="password"
+            value={settings.deepgramApiKey}
+            onChange={(e) => update("deepgramApiKey", e.target.value)}
+            placeholder="dg_..."
+            className="w-full px-3 py-2 rounded bg-[var(--input-bg)] border border-[var(--border)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]"
+          />
+        </Section>
+      )}
+
+      <Section title="LLM Provider (text cleanup)">
         <Select
           value={settings.llmProvider}
           onChange={(v) => update("llmProvider", v as Settings["llmProvider"])}
           options={[
-            { value: "cerebras", label: "Cerebras" },
             { value: "groq", label: "Groq" },
-            { value: "local", label: "Local (no LLM)" },
+            { value: "cerebras", label: "Cerebras" },
+            { value: "local", label: "None (raw transcription)" },
           ]}
         />
       </Section>
@@ -1387,7 +1415,7 @@ function InferenceTab({ settings, update }: TabProps) {
         </Section>
       )}
 
-      {settings.llmProvider === "groq" && (
+      {(settings.llmProvider === "groq" || settings.sttEngine === "groq") && (
         <Section title="Groq API Key">
           <input
             type="password"
