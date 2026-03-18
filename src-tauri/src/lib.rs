@@ -479,30 +479,19 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // --- Spawn the dictation pipeline --------------------------------
-            let pipeline_app = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                // Load config (fall back to defaults).
-                let cfg_path = config_path();
-                let cfg_str = cfg_path.to_string_lossy().to_string();
-                let config = chamgei_core::load_config(&cfg_str).unwrap_or_default();
-
-                match chamgei_core::Pipeline::new(config) {
-                    Ok(pipeline) => {
-                        tracing::info!("pipeline initialized, starting run loop");
-                        if let Err(e) = pipeline.run().await {
-                            tracing::error!(error = %e, "pipeline exited with error");
-                            let _ = pipeline_app.emit("pipeline-error", e.to_string());
-                        }
-                    }
-                    Err(e) => {
-                        // Pipeline init can fail (e.g. missing whisper model).
-                        // This is expected before onboarding completes.
-                        tracing::warn!(error = %e, "pipeline failed to initialize (onboarding may be needed)");
-                        let _ = pipeline_app.emit("pipeline-error", e.to_string());
-                    }
-                }
-            });
+            // NOTE: The dictation pipeline is NOT auto-started in the GUI app.
+            //
+            // rdev::listen (used for global hotkeys) calls macOS
+            // TSMGetInputSourceProperty which crashes when called from a
+            // non-main-dispatch-queue thread. In the Tauri app, the setup
+            // closure runs on the main thread but pipeline.run() spawns
+            // rdev on a background thread, triggering the crash.
+            //
+            // The .dmg app provides: onboarding, settings, history.
+            // The dictation pipeline runs via the `chamgei` CLI binary.
+            //
+            // TODO: Replace rdev with CGEventTap directly to fix this.
+            tracing::info!("Chamgei app started (dictation runs via CLI)");
 
             Ok(())
         })
