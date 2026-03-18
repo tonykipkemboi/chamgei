@@ -1,5 +1,9 @@
 # Chamgei
 
+**/tʃɑːm.ɡeɪ/** — a Kalenjin greeting meaning "How are you?"
+
+Kalenjin is a community from the highlands of Kenya. *Chamgei* (pronounced **CHAHM-gay**) is how you say hello — a word that opens conversation. We chose it because that's what this tool does: it opens the conversation between your voice and your computer.
+
 **An open-source, privacy-first voice dictation system.**
 
 Chamgei turns your voice into text anywhere on your desktop. It runs a local Whisper model for speech-to-text, optionally polishes the output through fast cloud LLMs, and injects the result at your cursor — all behind a single hotkey.
