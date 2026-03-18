@@ -4,6 +4,14 @@
 
 Chamgei turns your voice into text anywhere on your desktop. It runs a local Whisper model for speech-to-text, optionally polishes the output through fast cloud LLMs, and injects the result at your cursor — all behind a single hotkey.
 
+## Quick Start with AI Agent
+
+Point your AI coding agent at [`SKILLS.md`](SKILLS.md) and it will install and configure Chamgei for you:
+
+> "Read the SKILLS.md file in the chamgei repo and set up voice dictation for me"
+
+Works with Claude Code, Codex, Cursor, Windsurf, Aider, and any agent that can read files and run shell commands.
+
 ## Features
 
 - **Local speech-to-text** — On-device Whisper inference via whisper.cpp (Metal GPU on macOS).
