@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 pub use chamgei_audio::AudioConfig;
 pub use chamgei_hotkey::{ActivationMode, HotkeyConfig, HotkeyEvent};
 pub use chamgei_inject::InjectionMethod;
-pub use chamgei_llm::Provider;
 pub use chamgei_stt::WhisperModel;
 
 pub mod command_mode;

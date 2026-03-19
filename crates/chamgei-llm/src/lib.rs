@@ -52,18 +52,6 @@ pub trait LlmProvider: Send + Sync {
     fn is_available(&self) -> impl std::future::Future<Output = bool> + Send;
 }
 
-/// LLM provider selection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Provider {
-    /// Cerebras API (primary, fastest).
-    #[default]
-    Cerebras,
-    /// Groq API (secondary).
-    Groq,
-    /// Local llama.cpp (offline fallback).
-    Local,
-}
-
 // ---------------------------------------------------------------------------
 // OpenAI-compatible request/response types (shared by Cerebras & Groq)
 // ---------------------------------------------------------------------------
@@ -1214,11 +1202,6 @@ impl Default for ProviderChain {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_provider_default() {
-        assert_eq!(Provider::default(), Provider::Cerebras);
-    }
 
     #[test]
     fn test_cerebras_provider_creation() {

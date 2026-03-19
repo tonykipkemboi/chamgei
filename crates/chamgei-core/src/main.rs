@@ -342,7 +342,7 @@ fn print_banner(config: &ChamgeiConfig) {
     println!(
         "  {} {} — voice dictation",
         style("chamgei").cyan().bold(),
-        style("v0.3.0").dim(),
+        style(format!("v{}", env!("CARGO_PKG_VERSION"))).dim(),
     );
     println!();
 
@@ -394,7 +394,7 @@ fn print_banner(config: &ChamgeiConfig) {
 
 fn format_activation_mode(mode: &str) -> String {
     match mode.to_lowercase().as_str() {
-        "toggle" => "push-to-talk (Fn hold)".to_string(),
+        "toggle" => "toggle (Fn tap)".to_string(),
         _ => "push-to-talk (Fn hold)".to_string(),
     }
 }

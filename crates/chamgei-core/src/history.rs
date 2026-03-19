@@ -31,7 +31,8 @@ pub struct HistoryEntry {
 
 /// Transcription history manager.
 ///
-/// Entries are stored newest-first and capped at [`MAX_ENTRIES`].
+/// Entries are stored in chronological order (oldest first) and capped at [`MAX_ENTRIES`].
+/// The frontend reverses the array for newest-first display.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct History {
     entries: Vec<HistoryEntry>,
@@ -126,7 +127,7 @@ impl History {
             return;
         }
 
-        match serde_json::to_string_pretty(&self) {
+        match serde_json::to_string(&self) {
             Ok(json) => {
                 if let Err(e) = std::fs::write(&path, &json) {
                     tracing::warn!(error = %e, "failed to save history");
@@ -152,17 +153,19 @@ impl History {
 
     /// Add a new entry and auto-save.
     ///
-    /// The entry is inserted at the front (newest first). If the history
-    /// exceeds [`MAX_ENTRIES`], the oldest entries are dropped.
+    /// The entry is appended (O(1)). If the history exceeds [`MAX_ENTRIES`],
+    /// the oldest entries are dropped from the front.
     pub fn add(&mut self, entry: HistoryEntry) {
-        self.entries.insert(0, entry);
+        self.entries.push(entry);
         if self.entries.len() > MAX_ENTRIES {
-            self.entries.truncate(MAX_ENTRIES);
+            // Remove oldest entries from the beginning.
+            let excess = self.entries.len() - MAX_ENTRIES;
+            self.entries.drain(..excess);
         }
         self.save();
     }
 
-    /// Return all entries, newest first.
+    /// Return all entries in chronological order (oldest first).
     pub fn entries(&self) -> &[HistoryEntry] {
         &self.entries
     }
@@ -174,8 +177,6 @@ impl History {
     }
 
     /// Search entries by text content (case-insensitive substring match).
-    ///
-    /// Returns matching entries in newest-first order.
     pub fn search(&self, query: &str) -> Vec<&HistoryEntry> {
         let query_lower = query.to_lowercase();
         self.entries

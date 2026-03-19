@@ -110,34 +110,7 @@ impl UsageStats {
 
     /// Serialize the stats to a JSON string for the Tauri frontend.
     pub fn to_json(&self) -> String {
-        // Build provider_usage JSON object manually.
-        let provider_entries: Vec<String> = self
-            .provider_usage
-            .iter()
-            .map(|(k, v)| format!("\"{}\":{}", k, v))
-            .collect();
-        let provider_obj = format!("{{{}}}", provider_entries.join(","));
-
-        format!(
-            concat!(
-                "{{",
-                "\"total_dictations\":{},",
-                "\"total_duration_secs\":{},",
-                "\"avg_stt_latency_ms\":{},",
-                "\"avg_llm_latency_ms\":{},",
-                "\"avg_total_latency_ms\":{},",
-                "\"estimated_cost_usd\":{},",
-                "\"provider_usage\":{}",
-                "}}"
-            ),
-            self.total_dictations,
-            self.total_duration_secs,
-            self.avg_stt_latency_ms,
-            self.avg_llm_latency_ms,
-            self.avg_total_latency_ms,
-            self.estimated_cost_usd,
-            provider_obj,
-        )
+        serde_json::to_string_pretty(self).unwrap_or_else(|_| "{}".to_string())
     }
 
     /// Load stats from `~/.config/chamgei/stats.json`.
@@ -150,26 +123,16 @@ impl UsageStats {
         };
 
         match std::fs::read_to_string(&path) {
-            Ok(contents) => {
-                // Parse manually: we use serde Deserialize via a small inline
-                // JSON parser. Since we cannot depend on serde_json directly,
-                // we do a best-effort parse using our Serialize/Deserialize
-                // derives paired with the same manual approach.
-                //
-                // Actually — we serialise with to_json() which produces valid
-                // JSON, and we need to deserialise back. We'll use a minimal
-                // hand-rolled parser for the fields we care about.
-                match Self::parse_json(&contents) {
-                    Some(stats) => {
-                        tracing::debug!(?path, "loaded usage stats");
-                        stats
-                    }
-                    None => {
-                        tracing::warn!(?path, "failed to parse stats file, using defaults");
-                        Self::default()
-                    }
+            Ok(contents) => match Self::parse_json(&contents) {
+                Some(stats) => {
+                    tracing::debug!(?path, "loaded usage stats");
+                    stats
                 }
-            }
+                None => {
+                    tracing::warn!(?path, "failed to parse stats file, using defaults");
+                    Self::default()
+                }
+            },
             Err(_) => {
                 tracing::debug!(?path, "no stats file found, using defaults");
                 Self::default()
@@ -200,69 +163,9 @@ impl UsageStats {
         }
     }
 
-    /// Best-effort JSON parser for our known stats format.
+    /// Parse stats from a JSON string.
     fn parse_json(s: &str) -> Option<Self> {
-        let total_dictations = Self::extract_u64(s, "total_dictations")?;
-        let total_duration_secs = Self::extract_f64(s, "total_duration_secs")?;
-        let avg_stt_latency_ms = Self::extract_f64(s, "avg_stt_latency_ms")?;
-        let avg_llm_latency_ms = Self::extract_f64(s, "avg_llm_latency_ms")?;
-        let avg_total_latency_ms = Self::extract_f64(s, "avg_total_latency_ms")?;
-        let estimated_cost_usd = Self::extract_f64(s, "estimated_cost_usd")?;
-
-        let mut stats = Self {
-            total_dictations,
-            total_duration_secs,
-            avg_stt_latency_ms,
-            avg_llm_latency_ms,
-            avg_total_latency_ms,
-            estimated_cost_usd,
-            ..Self::default()
-        };
-
-        // Parse provider_usage object.
-        let pu_key = "\"provider_usage\":";
-        if let Some(start) = s.find(pu_key) {
-            let rest = &s[start + pu_key.len()..];
-            if let Some(obj_start) = rest.find('{')
-                && let Some(obj_end) = rest[obj_start..].find('}')
-            {
-                let inner = &rest[obj_start + 1..obj_start + obj_end];
-                // Parse entries like "cerebras":5,"groq":3
-                for entry in inner.split(',') {
-                    let entry = entry.trim();
-                    if entry.is_empty() {
-                        continue;
-                    }
-                    let parts: Vec<&str> = entry.splitn(2, ':').collect();
-                    if parts.len() == 2 {
-                        let key = parts[0].trim().trim_matches('"');
-                        if let Ok(val) = parts[1].trim().parse::<u64>() {
-                            stats.provider_usage.insert(key.to_string(), val);
-                        }
-                    }
-                }
-            }
-        }
-
-        Some(stats)
-    }
-
-    /// Extract a u64 value for a given key from a JSON string.
-    fn extract_u64(s: &str, key: &str) -> Option<u64> {
-        let pattern = format!("\"{}\":", key);
-        let start = s.find(&pattern)? + pattern.len();
-        let rest = s[start..].trim_start();
-        let end = rest.find([',', '}', ' '])?;
-        rest[..end].parse().ok()
-    }
-
-    /// Extract an f64 value for a given key from a JSON string.
-    fn extract_f64(s: &str, key: &str) -> Option<f64> {
-        let pattern = format!("\"{}\":", key);
-        let start = s.find(&pattern)? + pattern.len();
-        let rest = s[start..].trim_start();
-        let end = rest.find([',', '}', ' '])?;
-        rest[..end].parse().ok()
+        serde_json::from_str(s).ok()
     }
 }
 

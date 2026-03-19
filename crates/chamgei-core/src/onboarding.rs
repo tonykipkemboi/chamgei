@@ -71,7 +71,7 @@ pub fn needs_onboarding() -> bool {
 /// download, macOS permission guidance, and config file creation.
 pub fn run_onboarding() -> Result<()> {
     // --- Header -----------------------------------------------------------
-    intro("chamgei v0.3.0").map_err(|e| anyhow::anyhow!(e))?;
+    intro(format!("chamgei v{}", env!("CARGO_PKG_VERSION"))).map_err(|e| anyhow::anyhow!(e))?;
 
     // --- Step 1: LLM provider --------------------------------------------
     let provider: &str = select("Choose your LLM provider (cleans up transcriptions)")
