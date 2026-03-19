@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::{
+    AppHandle, Emitter, Manager,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Emitter, Manager,
 };
 
 // ---------------------------------------------------------------------------
@@ -101,20 +101,20 @@ fn open_mic_settings() {
         std::thread::spawn(|| {
             use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
             let host = cpal::default_host();
-            if let Some(device) = host.default_input_device() {
-                if let Ok(config) = device.default_input_config() {
-                    let stream_config: cpal::StreamConfig = config.into();
-                    // Open the stream briefly to trigger the permission prompt
-                    if let Ok(stream) = device.build_input_stream(
-                        &stream_config,
-                        |_data: &[f32], _: &cpal::InputCallbackInfo| {},
-                        |_err| {},
-                        None,
-                    ) {
-                        let _ = stream.play();
-                        std::thread::sleep(std::time::Duration::from_millis(200));
-                        // Stream drops here, closing the mic
-                    }
+            if let Some(device) = host.default_input_device()
+                && let Ok(config) = device.default_input_config()
+            {
+                let stream_config: cpal::StreamConfig = config.into();
+                // Open the stream briefly to trigger the permission prompt
+                if let Ok(stream) = device.build_input_stream(
+                    &stream_config,
+                    |_data: &[f32], _: &cpal::InputCallbackInfo| {},
+                    |_err| {},
+                    None,
+                ) {
+                    let _ = stream.play();
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                    // Stream drops here, closing the mic
                 }
             }
         });
@@ -146,8 +146,8 @@ fn open_accessibility_settings() {
 #[tauri::command]
 fn get_audio_level() -> f32 {
     use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     let host = cpal::default_host();
     let device = match host.default_input_device() {
@@ -171,13 +171,13 @@ fn get_audio_level() -> f32 {
         cpal::SampleFormat::F32 => device.build_input_stream(
             &stream_config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                if !done_clone.load(Ordering::Relaxed) {
-                    if let Ok(mut buf) = samples_clone.lock() {
-                        buf.extend_from_slice(data);
-                        // Collect ~100ms at any sample rate
-                        if buf.len() >= (stream_config.sample_rate.0 as usize / 10) {
-                            done_clone.store(true, Ordering::Relaxed);
-                        }
+                if !done_clone.load(Ordering::Relaxed)
+                    && let Ok(mut buf) = samples_clone.lock()
+                {
+                    buf.extend_from_slice(data);
+                    // Collect ~100ms at any sample rate
+                    if buf.len() >= (stream_config.sample_rate.0 as usize / 10) {
+                        done_clone.store(true, Ordering::Relaxed);
                     }
                 }
             },
@@ -248,13 +248,15 @@ fn load_config() -> String {
 fn load_config_json() -> String {
     let path = config_path();
     match fs::read_to_string(&path) {
-        Ok(contents) => {
-            match toml::from_str::<chamgei_core::ChamgeiConfig>(&contents) {
-                Ok(config) => serde_json::to_string(&config).unwrap_or_default(),
-                Err(_) => serde_json::to_string(&chamgei_core::ChamgeiConfig::default()).unwrap_or_default(),
+        Ok(contents) => match toml::from_str::<chamgei_core::ChamgeiConfig>(&contents) {
+            Ok(config) => serde_json::to_string(&config).unwrap_or_default(),
+            Err(_) => {
+                serde_json::to_string(&chamgei_core::ChamgeiConfig::default()).unwrap_or_default()
             }
+        },
+        Err(_) => {
+            serde_json::to_string(&chamgei_core::ChamgeiConfig::default()).unwrap_or_default()
         }
-        Err(_) => serde_json::to_string(&chamgei_core::ChamgeiConfig::default()).unwrap_or_default(),
     }
 }
 
@@ -315,10 +317,13 @@ async fn download_whisper_model(app: AppHandle, size: String) -> Result<(), Stri
     let model_path = model_dir.join(filename);
 
     if model_path.exists() {
-        let _ = app.emit("whisper-download-progress", serde_json::json!({
-            "percent": 100,
-            "done": true,
-        }));
+        let _ = app.emit(
+            "whisper-download-progress",
+            serde_json::json!({
+                "percent": 100,
+                "done": true,
+            }),
+        );
         return Ok(());
     }
 
@@ -446,8 +451,7 @@ fn check_accessibility_permission() -> bool {
 /// service = "com.chamgei.voice", account = provider name (e.g., "groq", "deepgram")
 #[tauri::command]
 fn save_api_key(provider: String, key: String) -> Result<(), String> {
-    let entry = keyring::Entry::new("com.chamgei.voice", &provider)
-        .map_err(|e| e.to_string())?;
+    let entry = keyring::Entry::new("com.chamgei.voice", &provider).map_err(|e| e.to_string())?;
     entry.set_password(&key).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -456,12 +460,11 @@ fn save_api_key(provider: String, key: String) -> Result<(), String> {
 /// Never returns the full key to the frontend.
 #[tauri::command]
 fn get_api_key_masked(provider: String) -> Result<String, String> {
-    let entry = keyring::Entry::new("com.chamgei.voice", &provider)
-        .map_err(|e| e.to_string())?;
+    let entry = keyring::Entry::new("com.chamgei.voice", &provider).map_err(|e| e.to_string())?;
     match entry.get_password() {
         Ok(key) if key.len() > 8 => {
             let prefix = &key[..4];
-            let suffix = &key[key.len()-4..];
+            let suffix = &key[key.len() - 4..];
             Ok(format!("{}...{}", prefix, suffix))
         }
         Ok(key) if !key.is_empty() => Ok("****".to_string()),
@@ -480,8 +483,7 @@ fn get_api_key_full(provider: &str) -> Option<String> {
 /// Delete an API key from the Keychain.
 #[tauri::command]
 fn delete_api_key(provider: String) -> Result<(), String> {
-    let entry = keyring::Entry::new("com.chamgei.voice", &provider)
-        .map_err(|e| e.to_string())?;
+    let entry = keyring::Entry::new("com.chamgei.voice", &provider).map_err(|e| e.to_string())?;
     entry.delete_credential().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -492,16 +494,33 @@ async fn test_api_key(provider: String) -> Result<String, String> {
     let key = get_api_key_full(&provider).ok_or("no key stored")?;
     let client = reqwest::Client::new();
     let (url, auth_header) = match provider.as_str() {
-        "groq" => ("https://api.groq.com/openai/v1/models", format!("Bearer {}", key)),
-        "deepgram" => ("https://api.deepgram.com/v1/projects", format!("Token {}", key)),
-        "openai" => ("https://api.openai.com/v1/models", format!("Bearer {}", key)),
-        "anthropic" => ("https://api.anthropic.com/v1/messages", format!("Bearer {}", key)),
-        "cerebras" => ("https://api.cerebras.ai/v1/models", format!("Bearer {}", key)),
+        "groq" => (
+            "https://api.groq.com/openai/v1/models",
+            format!("Bearer {}", key),
+        ),
+        "deepgram" => (
+            "https://api.deepgram.com/v1/projects",
+            format!("Token {}", key),
+        ),
+        "openai" => (
+            "https://api.openai.com/v1/models",
+            format!("Bearer {}", key),
+        ),
+        "anthropic" => (
+            "https://api.anthropic.com/v1/messages",
+            format!("Bearer {}", key),
+        ),
+        "cerebras" => (
+            "https://api.cerebras.ai/v1/models",
+            format!("Bearer {}", key),
+        ),
         _ => return Err("unknown provider".to_string()),
     };
-    let resp = client.get(url)
+    let resp = client
+        .get(url)
         .header("Authorization", &auth_header)
-        .send().await
+        .send()
+        .await
         .map_err(|e| e.to_string())?;
     if resp.status().is_success() || resp.status().as_u16() == 400 {
         Ok("valid".to_string())
@@ -549,24 +568,24 @@ fn migrate_keys_to_keychain() {
                     let actual_provider = match field {
                         "stt_api_key" => {
                             // Look for stt_engine in the config
-                            extract_toml_value(&content, "stt_engine").unwrap_or_else(|| provider.to_string())
+                            extract_toml_value(&content, "stt_engine")
+                                .unwrap_or_else(|| provider.to_string())
                         }
-                        "llm_api_key" => {
-                            extract_toml_value(&content, "llm_provider").unwrap_or_else(|| provider.to_string())
-                        }
+                        "llm_api_key" => extract_toml_value(&content, "llm_provider")
+                            .unwrap_or_else(|| provider.to_string()),
                         _ => provider.to_string(),
                     };
 
                     // Save to Keychain
-                    if let Ok(entry) = keyring::Entry::new("com.chamgei.voice", &actual_provider) {
-                        if entry.set_password(value).is_ok() {
-                            tracing::info!("Migrated {} key to Keychain", actual_provider);
-                            // Blank the value in config
-                            let full_match = format!("{} = \"{}\"", field, value);
-                            let replacement = format!("{} = \"\"", field);
-                            new_content = new_content.replace(&full_match, &replacement);
-                            changed = true;
-                        }
+                    if let Ok(entry) = keyring::Entry::new("com.chamgei.voice", &actual_provider)
+                        && entry.set_password(value).is_ok()
+                    {
+                        tracing::info!("Migrated {} key to Keychain", actual_provider);
+                        // Blank the value in config
+                        let full_match = format!("{} = \"{}\"", field, value);
+                        let replacement = format!("{} = \"\"", field);
+                        new_content = new_content.replace(&full_match, &replacement);
+                        changed = true;
                     }
                 }
             }
@@ -585,7 +604,11 @@ fn extract_toml_value(content: &str, key: &str) -> Option<String> {
     let start = content.find(&pattern)? + pattern.len();
     let end = content[start..].find('"')?;
     let val = &content[start..start + end];
-    if val.is_empty() { None } else { Some(val.to_string()) }
+    if val.is_empty() {
+        None
+    } else {
+        Some(val.to_string())
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -627,10 +650,8 @@ pub fn run() {
         })
         .setup(|app| {
             // --- Tray menu ---------------------------------------------------
-            let settings_item =
-                MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let history_item =
-                MenuItem::with_id(app, "history", "History", true, None::<&str>)?;
+            let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let history_item = MenuItem::with_id(app, "history", "History", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit Chamgei", true, None::<&str>)?;
 

@@ -53,20 +53,15 @@ pub trait LlmProvider: Send + Sync {
 }
 
 /// LLM provider selection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Provider {
     /// Cerebras API (primary, fastest).
+    #[default]
     Cerebras,
     /// Groq API (secondary).
     Groq,
     /// Local llama.cpp (offline fallback).
     Local,
-}
-
-impl Default for Provider {
-    fn default() -> Self {
-        Self::Cerebras
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -154,17 +149,15 @@ async fn send_chat_completion(
         let body = response.text().await.unwrap_or_default();
 
         // Try to extract a structured error message.
-        if let Ok(err_resp) = serde_json::from_str::<ApiErrorResponse>(&body) {
-            if let Some(detail) = err_resp.error {
-                let msg = detail.message.unwrap_or_else(|| "unknown".to_string());
-                let kind = detail.error_type.unwrap_or_default();
-                if status.as_u16() == 429 {
-                    return Err(LlmError::ApiError(format!("rate limited: {msg}")).into());
-                }
-                return Err(
-                    LlmError::ApiError(format!("HTTP {status} ({kind}): {msg}")).into(),
-                );
+        if let Ok(err_resp) = serde_json::from_str::<ApiErrorResponse>(&body)
+            && let Some(detail) = err_resp.error
+        {
+            let msg = detail.message.unwrap_or_else(|| "unknown".to_string());
+            let kind = detail.error_type.unwrap_or_default();
+            if status.as_u16() == 429 {
+                return Err(LlmError::ApiError(format!("rate limited: {msg}")).into());
             }
+            return Err(LlmError::ApiError(format!("HTTP {status} ({kind}): {msg}")).into());
         }
 
         return Err(LlmError::ApiError(format!("HTTP {status}: {body}")).into());
@@ -226,17 +219,15 @@ async fn send_gemini_completion(
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
 
-        if let Ok(err_resp) = serde_json::from_str::<ApiErrorResponse>(&body) {
-            if let Some(detail) = err_resp.error {
-                let msg = detail.message.unwrap_or_else(|| "unknown".to_string());
-                let kind = detail.error_type.unwrap_or_default();
-                if status.as_u16() == 429 {
-                    return Err(LlmError::ApiError(format!("rate limited: {msg}")).into());
-                }
-                return Err(
-                    LlmError::ApiError(format!("HTTP {status} ({kind}): {msg}")).into(),
-                );
+        if let Ok(err_resp) = serde_json::from_str::<ApiErrorResponse>(&body)
+            && let Some(detail) = err_resp.error
+        {
+            let msg = detail.message.unwrap_or_else(|| "unknown".to_string());
+            let kind = detail.error_type.unwrap_or_default();
+            if status.as_u16() == 429 {
+                return Err(LlmError::ApiError(format!("rate limited: {msg}")).into());
             }
+            return Err(LlmError::ApiError(format!("HTTP {status} ({kind}): {msg}")).into());
         }
 
         return Err(LlmError::ApiError(format!("HTTP {status}: {body}")).into());
@@ -337,17 +328,15 @@ async fn send_anthropic_message(
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
 
-        if let Ok(err_resp) = serde_json::from_str::<AnthropicErrorResponse>(&body) {
-            if let Some(detail) = err_resp.error {
-                let msg = detail.message.unwrap_or_else(|| "unknown".to_string());
-                let kind = detail.error_type.unwrap_or_default();
-                if status.as_u16() == 429 {
-                    return Err(LlmError::ApiError(format!("rate limited: {msg}")).into());
-                }
-                return Err(
-                    LlmError::ApiError(format!("HTTP {status} ({kind}): {msg}")).into(),
-                );
+        if let Ok(err_resp) = serde_json::from_str::<AnthropicErrorResponse>(&body)
+            && let Some(detail) = err_resp.error
+        {
+            let msg = detail.message.unwrap_or_else(|| "unknown".to_string());
+            let kind = detail.error_type.unwrap_or_default();
+            if status.as_u16() == 429 {
+                return Err(LlmError::ApiError(format!("rate limited: {msg}")).into());
             }
+            return Err(LlmError::ApiError(format!("HTTP {status} ({kind}): {msg}")).into());
         }
 
         return Err(LlmError::ApiError(format!("HTTP {status}: {body}")).into());
@@ -389,10 +378,7 @@ pub struct GeminiProvider {
 
 impl GeminiProvider {
     /// Create a new Gemini provider with the given configuration.
-    pub fn new(
-        api_key: impl Into<String>,
-        model: impl Into<String>,
-    ) -> Self {
+    pub fn new(api_key: impl Into<String>, model: impl Into<String>) -> Self {
         Self {
             name: "gemini".to_string(),
             base_url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
@@ -412,9 +398,7 @@ impl LlmProvider for GeminiProvider {
         system_prompt: &str,
     ) -> Result<FormattedText> {
         if self.api_key.is_empty() {
-            return Err(
-                LlmError::ProviderUnavailable("Gemini API key not set".into()).into(),
-            );
+            return Err(LlmError::ProviderUnavailable("Gemini API key not set".into()).into());
         }
 
         tracing::debug!(
@@ -478,10 +462,7 @@ pub struct AnthropicProvider {
 
 impl AnthropicProvider {
     /// Create a new Anthropic provider with the given configuration.
-    pub fn new(
-        api_key: impl Into<String>,
-        model: impl Into<String>,
-    ) -> Self {
+    pub fn new(api_key: impl Into<String>, model: impl Into<String>) -> Self {
         Self {
             name: "anthropic".to_string(),
             base_url: "https://api.anthropic.com/v1/messages".to_string(),
@@ -507,9 +488,7 @@ impl LlmProvider for AnthropicProvider {
         system_prompt: &str,
     ) -> Result<FormattedText> {
         if self.api_key.is_empty() {
-            return Err(
-                LlmError::ProviderUnavailable("Anthropic API key not set".into()).into(),
-            );
+            return Err(LlmError::ProviderUnavailable("Anthropic API key not set".into()).into());
         }
 
         tracing::debug!(
@@ -665,7 +644,10 @@ pub mod presets {
         )
     }
 
-    pub fn cerebras(api_key: impl Into<String>, model: impl Into<String>) -> OpenAICompatibleProvider {
+    pub fn cerebras(
+        api_key: impl Into<String>,
+        model: impl Into<String>,
+    ) -> OpenAICompatibleProvider {
         OpenAICompatibleProvider::new(
             "cerebras",
             "https://api.cerebras.ai/v1/chat/completions",
@@ -674,7 +656,10 @@ pub mod presets {
         )
     }
 
-    pub fn together(api_key: impl Into<String>, model: impl Into<String>) -> OpenAICompatibleProvider {
+    pub fn together(
+        api_key: impl Into<String>,
+        model: impl Into<String>,
+    ) -> OpenAICompatibleProvider {
         OpenAICompatibleProvider::new(
             "together",
             "https://api.together.xyz/v1/chat/completions",
@@ -683,7 +668,10 @@ pub mod presets {
         )
     }
 
-    pub fn openrouter(api_key: impl Into<String>, model: impl Into<String>) -> OpenAICompatibleProvider {
+    pub fn openrouter(
+        api_key: impl Into<String>,
+        model: impl Into<String>,
+    ) -> OpenAICompatibleProvider {
         OpenAICompatibleProvider::new(
             "openrouter",
             "https://openrouter.ai/api/v1/chat/completions",
@@ -692,7 +680,10 @@ pub mod presets {
         )
     }
 
-    pub fn fireworks(api_key: impl Into<String>, model: impl Into<String>) -> OpenAICompatibleProvider {
+    pub fn fireworks(
+        api_key: impl Into<String>,
+        model: impl Into<String>,
+    ) -> OpenAICompatibleProvider {
         OpenAICompatibleProvider::new(
             "fireworks",
             "https://api.fireworks.ai/inference/v1/chat/completions",
@@ -701,7 +692,10 @@ pub mod presets {
         )
     }
 
-    pub fn openai(api_key: impl Into<String>, model: impl Into<String>) -> OpenAICompatibleProvider {
+    pub fn openai(
+        api_key: impl Into<String>,
+        model: impl Into<String>,
+    ) -> OpenAICompatibleProvider {
         OpenAICompatibleProvider::new(
             "openai",
             "https://api.openai.com/v1/chat/completions",
@@ -782,19 +776,17 @@ pub fn list_ollama_models() -> Vec<OllamaModel> {
         .unwrap_or_default();
 
     match client.get("http://localhost:11434/api/tags").send() {
-        Ok(resp) if resp.status().is_success() => {
-            match resp.json::<OllamaTagsResponse>() {
-                Ok(tags) => tags
-                    .models
-                    .into_iter()
-                    .map(|m| OllamaModel {
-                        name: m.name,
-                        size: m.size,
-                    })
-                    .collect(),
-                Err(_) => vec![],
-            }
-        }
+        Ok(resp) if resp.status().is_success() => match resp.json::<OllamaTagsResponse>() {
+            Ok(tags) => tags
+                .models
+                .into_iter()
+                .map(|m| OllamaModel {
+                    name: m.name,
+                    size: m.size,
+                })
+                .collect(),
+            Err(_) => vec![],
+        },
         _ => vec![],
     }
 }
@@ -1023,10 +1015,10 @@ impl LocalLlamaProvider {
         let mut result = format!("{first}{rest}");
 
         // Ensure the text ends with sentence-ending punctuation.
-        if let Some(last) = result.chars().last() {
-            if !matches!(last, '.' | '!' | '?') {
-                result.push('.');
-            }
+        if let Some(last) = result.chars().last()
+            && !matches!(last, '.' | '!' | '?')
+        {
+            result.push('.');
         }
 
         result
@@ -1169,6 +1161,7 @@ impl ProviderChain {
     }
 
     /// Append a provider to the chain (lower priority than previously added ones).
+    #[allow(clippy::should_implement_trait)]
     pub fn add<P: LlmProvider + 'static>(mut self, provider: P) -> Self {
         self.providers.push(Box::new(provider));
         self
@@ -1274,7 +1267,7 @@ mod tests {
     async fn test_chain_skips_unavailable_providers() {
         let chain = ProviderChain::new()
             .add(CerebrasProvider::new("")) // unavailable
-            .add(GroqProvider::new(""));    // unavailable
+            .add(GroqProvider::new("")); // unavailable
 
         let ctx = AppContext {
             app_name: "test".into(),
@@ -1311,13 +1304,22 @@ mod tests {
 
     #[test]
     fn test_basic_cleanup_capitalizes() {
-        assert_eq!(LocalLlamaProvider::basic_cleanup("hello world"), "Hello world.");
+        assert_eq!(
+            LocalLlamaProvider::basic_cleanup("hello world"),
+            "Hello world."
+        );
     }
 
     #[test]
     fn test_basic_cleanup_preserves_existing_punctuation() {
-        assert_eq!(LocalLlamaProvider::basic_cleanup("hello world!"), "Hello world!");
-        assert_eq!(LocalLlamaProvider::basic_cleanup("is this a question?"), "Is this a question?");
+        assert_eq!(
+            LocalLlamaProvider::basic_cleanup("hello world!"),
+            "Hello world!"
+        );
+        assert_eq!(
+            LocalLlamaProvider::basic_cleanup("is this a question?"),
+            "Is this a question?"
+        );
     }
 
     #[test]
@@ -1346,7 +1348,10 @@ mod tests {
             app_name: "test".into(),
             bundle_id: None,
         };
-        let result = provider.format("  raw text here  ", &ctx, "system").await.unwrap();
+        let result = provider
+            .format("  raw text here  ", &ctx, "system")
+            .await
+            .unwrap();
         assert_eq!(result.text, "  raw text here  ");
         assert_eq!(result.provider, "raw-fallback");
         assert_eq!(result.latency_ms, 0);
@@ -1356,7 +1361,7 @@ mod tests {
     async fn test_chain_falls_through_to_raw_fallback() {
         let chain = ProviderChain::new()
             .add(CerebrasProvider::new("")) // unavailable
-            .add(GroqProvider::new(""))     // unavailable
+            .add(GroqProvider::new("")) // unavailable
             .add(RawTranscriptFallback::new());
 
         let ctx = AppContext {

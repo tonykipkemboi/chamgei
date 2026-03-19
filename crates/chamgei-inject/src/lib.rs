@@ -130,7 +130,10 @@ fn inject_native(text: &str) -> Result<()> {
 
 #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
 fn inject_native(_text: &str) -> Result<()> {
-    Err(InjectError::InjectionFailed("native injection not supported on this platform".into()).into())
+    Err(
+        InjectError::InjectionFailed("native injection not supported on this platform".into())
+            .into(),
+    )
 }
 
 // ===========================================================================
@@ -355,7 +358,8 @@ mod macos {
     ///
     /// `delay_ms` controls the pause between each keystroke (default: 5ms).
     pub(super) fn inject_native_keystrokes(text: &str, delay_ms: Option<u64>) -> Result<()> {
-        let delay = std::time::Duration::from_millis(delay_ms.unwrap_or(DEFAULT_KEYSTROKE_DELAY_MS));
+        let delay =
+            std::time::Duration::from_millis(delay_ms.unwrap_or(DEFAULT_KEYSTROKE_DELAY_MS));
 
         debug!(
             "injecting {} characters via CGEvent keystrokes (delay={}ms)",
@@ -399,9 +403,7 @@ mod macos {
                 Ok(())
             }
             Err(e) => {
-                warn!(
-                    "keystroke injection failed ({e}), falling back to clipboard + Cmd+V"
-                );
+                warn!("keystroke injection failed ({e}), falling back to clipboard + Cmd+V");
                 inject_native_clipboard(text)
             }
         }
@@ -414,8 +416,7 @@ mod macos {
 
         debug!("native macOS injection via CGEvent Cmd+V");
 
-        let mut clipboard =
-            Clipboard::new().map_err(|e| InjectError::Clipboard(e.to_string()))?;
+        let mut clipboard = Clipboard::new().map_err(|e| InjectError::Clipboard(e.to_string()))?;
 
         let previous = clipboard.get_text().ok();
 
@@ -446,8 +447,8 @@ mod macos {
 mod windows_impl {
     use super::*;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
-        KEYEVENTF_EXTENDEDKEY, VK_CONTROL, VK_V,
+        INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
+        SendInput, VK_CONTROL, VK_V,
     };
 
     /// Build a KEYBDINPUT for the given virtual key.
@@ -471,23 +472,19 @@ mod windows_impl {
         debug!("simulating Ctrl+V via SendInput");
 
         let inputs = [
-            kbd_input(VK_CONTROL.0, 0),                              // Ctrl down
-            kbd_input(VK_V.0, 0),                                    // V down
-            kbd_input(VK_V.0, KEYEVENTF_KEYUP.0),                   // V up
-            kbd_input(VK_CONTROL.0, KEYEVENTF_KEYUP.0),             // Ctrl up
+            kbd_input(VK_CONTROL.0, 0),                 // Ctrl down
+            kbd_input(VK_V.0, 0),                       // V down
+            kbd_input(VK_V.0, KEYEVENTF_KEYUP.0),       // V up
+            kbd_input(VK_CONTROL.0, KEYEVENTF_KEYUP.0), // Ctrl up
         ];
 
-        let sent = unsafe {
-            SendInput(
-                &inputs,
-                std::mem::size_of::<INPUT>() as i32,
-            )
-        };
+        let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
 
         if sent != inputs.len() as u32 {
-            return Err(
-                InjectError::InjectionFailed("SendInput did not process all events".into()).into(),
-            );
+            return Err(InjectError::InjectionFailed(
+                "SendInput did not process all events".into(),
+            )
+            .into());
         }
 
         std::thread::sleep(std::time::Duration::from_millis(50));
@@ -500,8 +497,7 @@ mod windows_impl {
 
         debug!("native Windows injection via SendInput Ctrl+V");
 
-        let mut clipboard =
-            Clipboard::new().map_err(|e| InjectError::Clipboard(e.to_string()))?;
+        let mut clipboard = Clipboard::new().map_err(|e| InjectError::Clipboard(e.to_string()))?;
 
         let previous = clipboard.get_text().ok();
 
@@ -571,16 +567,13 @@ mod linux {
             .args(["-M", "ctrl", "-P", "v", "-p", "v", "-m", "ctrl"])
             .status()
             .map_err(|e| {
-                InjectError::InjectionFailed(format!(
-                    "failed to run wtype (is it installed?): {e}"
-                ))
+                InjectError::InjectionFailed(format!("failed to run wtype (is it installed?): {e}"))
             })?;
 
         if !status.success() {
-            return Err(InjectError::InjectionFailed(format!(
-                "wtype exited with status {status}"
-            ))
-            .into());
+            return Err(
+                InjectError::InjectionFailed(format!("wtype exited with status {status}")).into(),
+            );
         }
 
         std::thread::sleep(std::time::Duration::from_millis(50));
@@ -639,16 +632,13 @@ mod linux {
             .args(["--", &text])
             .status()
             .map_err(|e| {
-                InjectError::InjectionFailed(format!(
-                    "failed to run wtype (is it installed?): {e}"
-                ))
+                InjectError::InjectionFailed(format!("failed to run wtype (is it installed?): {e}"))
             })?;
 
         if !status.success() {
-            return Err(InjectError::InjectionFailed(format!(
-                "wtype exited with status {status}"
-            ))
-            .into());
+            return Err(
+                InjectError::InjectionFailed(format!("wtype exited with status {status}")).into(),
+            );
         }
 
         Ok(())

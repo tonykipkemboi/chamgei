@@ -9,17 +9,11 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// A personal dictionary of custom vocabulary terms.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Dictionary {
     /// Custom vocabulary terms the LLM should recognise.
     #[serde(default)]
     terms: Vec<String>,
-}
-
-impl Default for Dictionary {
-    fn default() -> Self {
-        Self { terms: Vec::new() }
-    }
 }
 
 impl Dictionary {
@@ -74,8 +68,8 @@ impl Dictionary {
             })?;
         }
 
-        let contents = toml::to_string_pretty(self)
-            .context("failed to serialize dictionary to TOML")?;
+        let contents =
+            toml::to_string_pretty(self).context("failed to serialize dictionary to TOML")?;
         std::fs::write(path, contents)
             .with_context(|| format!("failed to write dictionary file: {}", path.display()))?;
         tracing::debug!(path = %path.display(), "dictionary saved");

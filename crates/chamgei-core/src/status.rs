@@ -111,10 +111,10 @@ impl StatusManager {
         // Store the error message (if any) *before* updating the discriminant
         // so that a concurrent `get_status` never sees `Error` with a stale
         // message.
-        if let PipelineStatus::Error(ref msg) = status {
-            if let Ok(mut guard) = self.error_message.lock() {
-                *guard = Some(msg.clone());
-            }
+        if let PipelineStatus::Error(ref msg) = status
+            && let Ok(mut guard) = self.error_message.lock()
+        {
+            *guard = Some(msg.clone());
         }
 
         let old_disc = self.discriminant.swap(new_disc, Ordering::SeqCst);
@@ -202,10 +202,7 @@ mod tests {
         assert_eq!(mgr.get_status(), PipelineStatus::Injecting);
 
         mgr.set_status(PipelineStatus::Error("mic failed".into()));
-        assert_eq!(
-            mgr.get_status(),
-            PipelineStatus::Error("mic failed".into())
-        );
+        assert_eq!(mgr.get_status(), PipelineStatus::Error("mic failed".into()));
 
         mgr.set_status(PipelineStatus::Idle);
         assert_eq!(mgr.get_status(), PipelineStatus::Idle);

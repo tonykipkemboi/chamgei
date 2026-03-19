@@ -112,7 +112,10 @@ impl CommandMode {
     /// keystroke (Cmd+V / Ctrl+V). Because the original text was selected
     /// before command mode was activated, the paste replaces it.
     pub fn replace_selection(new_text: &str) -> Result<()> {
-        debug!(len = new_text.len(), "replacing selection with transformed text");
+        debug!(
+            len = new_text.len(),
+            "replacing selection with transformed text"
+        );
         chamgei_inject::inject_text(new_text, chamgei_inject::InjectionMethod::Clipboard)
             .context("failed to replace selection with transformed text")
     }
@@ -220,7 +223,9 @@ fn read_clipboard() -> Result<String> {
         .args(["-NoProfile", "-Command", "Get-Clipboard"])
         .output()
         .context("failed to run powershell for clipboard read")?;
-    Ok(String::from_utf8_lossy(&output.stdout).trim_end().to_string())
+    Ok(String::from_utf8_lossy(&output.stdout)
+        .trim_end()
+        .to_string())
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
@@ -247,10 +252,7 @@ mod tests {
 
     #[test]
     fn test_build_command_prompt_contains_instruction() {
-        let prompt = CommandMode::build_command_prompt(
-            "Hello world",
-            "translate to Spanish",
-        );
+        let prompt = CommandMode::build_command_prompt("Hello world", "translate to Spanish");
         assert!(prompt.contains("translate to Spanish"));
     }
 

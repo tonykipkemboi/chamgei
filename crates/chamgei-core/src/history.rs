@@ -32,17 +32,9 @@ pub struct HistoryEntry {
 /// Transcription history manager.
 ///
 /// Entries are stored newest-first and capped at [`MAX_ENTRIES`].
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct History {
     entries: Vec<HistoryEntry>,
-}
-
-impl Default for History {
-    fn default() -> Self {
-        Self {
-            entries: Vec::new(),
-        }
-    }
 }
 
 /// Returns the path to the history JSON file: `~/.config/chamgei/history.json`.
@@ -127,11 +119,11 @@ impl History {
             return;
         };
 
-        if let Some(parent) = path.parent() {
-            if let Err(e) = std::fs::create_dir_all(parent) {
-                tracing::warn!(error = %e, "failed to create history directory");
-                return;
-            }
+        if let Some(parent) = path.parent()
+            && let Err(e) = std::fs::create_dir_all(parent)
+        {
+            tracing::warn!(error = %e, "failed to create history directory");
+            return;
         }
 
         match serde_json::to_string_pretty(&self) {
@@ -145,7 +137,11 @@ impl History {
                         let perms = std::fs::Permissions::from_mode(0o600);
                         let _ = std::fs::set_permissions(&path, perms);
                     }
-                    tracing::debug!(?path, entries = self.entries.len(), "saved transcription history");
+                    tracing::debug!(
+                        ?path,
+                        entries = self.entries.len(),
+                        "saved transcription history"
+                    );
                 }
             }
             Err(e) => {
@@ -246,7 +242,9 @@ mod tests {
     fn cap_at_max_entries() {
         let mut history = History::default();
         for i in 0..MAX_ENTRIES + 50 {
-            history.entries.insert(0, sample_entry(&format!("entry {}", i)));
+            history
+                .entries
+                .insert(0, sample_entry(&format!("entry {}", i)));
         }
         history.entries.truncate(MAX_ENTRIES);
 

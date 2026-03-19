@@ -3,8 +3,8 @@
 //! Captures audio from the system microphone via cpal, resamples to
 //! 16kHz mono via rubato, and filters silence using energy-based VAD.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::Result;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -79,7 +79,6 @@ pub struct AudioCapture {
     /// Signals the processing thread to flush any buffered speech immediately.
     flush: Arc<AtomicBool>,
 }
-
 
 impl AudioCapture {
     /// Create a new `AudioCapture` with the given configuration.

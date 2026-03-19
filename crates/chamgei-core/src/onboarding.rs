@@ -75,7 +75,11 @@ pub fn run_onboarding() -> Result<()> {
 
     // --- Step 1: LLM provider --------------------------------------------
     let provider: &str = select("Choose your LLM provider (cleans up transcriptions)")
-        .item("none", "None — skip LLM cleanup", "use raw STT output (Deepgram/Parakeet already include punctuation)")
+        .item(
+            "none",
+            "None — skip LLM cleanup",
+            "use raw STT output (Deepgram/Parakeet already include punctuation)",
+        )
         .item("groq", "Groq", "recommended — free tier, ultra-fast")
         .item("cerebras", "Cerebras", "wafer-scale inference")
         .item("together", "Together AI", "wide model selection")
@@ -115,8 +119,7 @@ pub fn run_onboarding() -> Result<()> {
                 .map_err(|e| anyhow::anyhow!(e))?;
             if use_existing {
                 // Retrieve the actual key from Keychain
-                get_keychain_full(provider_name)
-                    .unwrap_or_default()
+                get_keychain_full(provider_name).unwrap_or_default()
             } else {
                 let key: String = input("Enter your new API key")
                     .placeholder("sk-...")
@@ -200,9 +203,21 @@ pub fn run_onboarding() -> Result<()> {
 
     // --- Step 2: Speech-to-text engine ------------------------------------
     let stt_engine: &str = select("Choose your speech-to-text engine")
-        .item("local", "Local Whisper", "private — audio stays on your Mac (needs model download)")
-        .item("groq", "Groq Cloud Whisper", "fastest + most accurate — audio sent to Groq (uses your Groq API key)")
-        .item("deepgram", "Deepgram Nova-2", "most accurate — audio sent to Deepgram (needs separate API key)")
+        .item(
+            "local",
+            "Local Whisper",
+            "private — audio stays on your Mac (needs model download)",
+        )
+        .item(
+            "groq",
+            "Groq Cloud Whisper",
+            "fastest + most accurate — audio sent to Groq (uses your Groq API key)",
+        )
+        .item(
+            "deepgram",
+            "Deepgram Nova-2",
+            "most accurate — audio sent to Deepgram (needs separate API key)",
+        )
         .interact()
         .map_err(|e| anyhow::anyhow!(e))?;
 
@@ -320,24 +335,25 @@ pub fn run_onboarding() -> Result<()> {
 
     // --- Download model (only for local STT) -----------------------------
     if stt_engine == "local" {
-    let model_dir = resolve_model_dir();
-    let model_path = model_dir.join(whisper_file);
+        let model_dir = resolve_model_dir();
+        let model_path = model_dir.join(whisper_file);
 
-    if model_path.exists() {
-        let sp = spinner();
-        sp.start("Checking Whisper model...");
-        sp.stop(format!("Model already downloaded at {}", model_path.display()));
-    } else {
-        std::fs::create_dir_all(&model_dir)
-            .context("failed to create model directory")?;
+        if model_path.exists() {
+            let sp = spinner();
+            sp.start("Checking Whisper model...");
+            sp.stop(format!(
+                "Model already downloaded at {}",
+                model_path.display()
+            ));
+        } else {
+            std::fs::create_dir_all(&model_dir).context("failed to create model directory")?;
 
-        download_model(whisper_url, &model_path)
-            .context("failed to download Whisper model")?;
+            download_model(whisper_url, &model_path).context("failed to download Whisper model")?;
 
-        // Verify checksum (warning only — does not block).
-        let expected = expected_checksum_for(whisper_file);
-        verify_model_checksum(model_path.to_str().unwrap_or(""), expected);
-    }
+            // Verify checksum (warning only — does not block).
+            let expected = expected_checksum_for(whisper_file);
+            verify_model_checksum(model_path.to_str().unwrap_or(""), expected);
+        }
     } // end if stt_engine == "local"
 
     // --- Step 3: macOS permissions ---------------------------------------
@@ -350,7 +366,9 @@ pub fn run_onboarding() -> Result<()> {
 
         if open_prefs {
             let _ = Command::new("open")
-                .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+                .arg(
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+                )
                 .status();
         }
 
@@ -358,16 +376,17 @@ pub fn run_onboarding() -> Result<()> {
             .initial_value(true)
             .interact()
             .map_err(|e| anyhow::anyhow!(e))
-            .and_then(|open_mic| {
+            .inspect(|&open_mic| {
                 if open_mic {
                     let _ = Command::new("open")
                         .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
                         .status();
                 }
-                Ok(open_mic)
             })?;
 
-        println!("  \u{1f4a1} Tip: Set System Settings > Keyboard > \"Press \u{1f310} key to\" \u{2192} \"Do Nothing\"");
+        println!(
+            "  \u{1f4a1} Tip: Set System Settings > Keyboard > \"Press \u{1f310} key to\" \u{2192} \"Do Nothing\""
+        );
         println!("     This ensures the Fn key triggers Chamgei instead of Emoji picker.");
     }
 
@@ -377,8 +396,7 @@ pub fn run_onboarding() -> Result<()> {
 
     let config_dir = config_dir().context("could not determine config directory")?;
     let config_path = config_dir.join("config.toml");
-    std::fs::create_dir_all(&config_dir)
-        .context("failed to create config directory")?;
+    std::fs::create_dir_all(&config_dir).context("failed to create config directory")?;
 
     let base_url_line = match &custom_base_url {
         Some(url) => format!("base_url = \"{}\"", url),
@@ -443,8 +461,7 @@ injection_method = "clipboard"
         provider_block = provider_block,
     );
 
-    std::fs::write(&config_path, &config_contents)
-        .context("failed to write config file")?;
+    std::fs::write(&config_path, &config_contents).context("failed to write config file")?;
 
     #[cfg(unix)]
     {
@@ -535,8 +552,7 @@ fn download_model(url: &str, dest: &std::path::Path) -> Result<()> {
             .unwrap_or_else(|| "partial".to_string()),
     );
 
-    let response = reqwest::blocking::get(url)
-        .context("failed to start model download")?;
+    let response = reqwest::blocking::get(url).context("failed to start model download")?;
 
     if !response.status().is_success() {
         anyhow::bail!(
@@ -558,8 +574,8 @@ fn download_model(url: &str, dest: &std::path::Path) -> Result<()> {
         .progress_chars("\u{2588}\u{2593}\u{2591}"),
     );
 
-    let mut file = std::fs::File::create(&partial_path)
-        .context("failed to create partial model file")?;
+    let mut file =
+        std::fs::File::create(&partial_path).context("failed to create partial model file")?;
 
     let mut reader = std::io::BufReader::new(response);
     let mut buf = [0u8; 8192];
@@ -596,10 +612,16 @@ fn download_model(url: &str, dest: &std::path::Path) -> Result<()> {
 //
 // Last verified: 2026-03-16
 const EXPECTED_CHECKSUMS: &[(&str, &str)] = &[
-    ("ggml-tiny.en.bin",   "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f"),
-    ("ggml-small.en.bin",  "c6138d6d58ecc8322097e0f987c32f1be8bb0a18532a3f88f734d1bbf9c41e5d"),
-    ("ggml-medium.en.bin", ""),  // TODO: fill in after downloading and hashing
-    ("ggml-large.bin",     ""),  // TODO: fill in after downloading and hashing
+    (
+        "ggml-tiny.en.bin",
+        "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f",
+    ),
+    (
+        "ggml-small.en.bin",
+        "c6138d6d58ecc8322097e0f987c32f1be8bb0a18532a3f88f734d1bbf9c41e5d",
+    ),
+    ("ggml-medium.en.bin", ""), // TODO: fill in after downloading and hashing
+    ("ggml-large.bin", ""),     // TODO: fill in after downloading and hashing
 ];
 
 /// Verify the SHA-256 checksum of a downloaded file.
@@ -666,7 +688,7 @@ fn get_keychain_masked(provider: &str) -> Option<String> {
         return None;
     }
     if key.len() > 8 {
-        Some(format!("{}...{}", &key[..4], &key[key.len()-4..]))
+        Some(format!("{}...{}", &key[..4], &key[key.len() - 4..]))
     } else {
         Some("****".to_string())
     }
@@ -681,10 +703,10 @@ fn get_keychain_full(provider: &str) -> Option<String> {
 
 /// Save an API key to macOS Keychain.
 fn set_keychain(provider: &str, key: &str) {
-    if let Ok(entry) = keyring::Entry::new("com.chamgei.voice", provider) {
-        if let Err(e) = entry.set_password(key) {
-            tracing::warn!("failed to save {provider} key to Keychain: {e}");
-        }
+    if let Ok(entry) = keyring::Entry::new("com.chamgei.voice", provider)
+        && let Err(e) = entry.set_password(key)
+    {
+        tracing::warn!("failed to save {provider} key to Keychain: {e}");
     }
 }
 
@@ -708,7 +730,12 @@ fn resolve_model_dir() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|_| {
             dirs::home_dir()
-                .map(|h| h.join(".local").join("share").join("chamgei").join("models"))
+                .map(|h| {
+                    h.join(".local")
+                        .join("share")
+                        .join("chamgei")
+                        .join("models")
+                })
                 .unwrap_or_else(|| PathBuf::from("models"))
         })
 }
@@ -743,7 +770,11 @@ fn pick_ollama_model(default: &str) -> Result<String> {
         return Ok(model);
     }
 
-    sp.stop(format!("Found {} Ollama model{}", models.len(), if models.len() == 1 { "" } else { "s" }));
+    sp.stop(format!(
+        "Found {} Ollama model{}",
+        models.len(),
+        if models.len() == 1 { "" } else { "s" }
+    ));
 
     // Build a selection menu from available models
     let mut sel = select("Choose an Ollama model");
@@ -786,11 +817,7 @@ fn has_any_provider(config: &crate::ChamgeiConfig) -> bool {
         }
     }
     // Legacy keys.
-    if config
-        .groq_api_key
-        .as_ref()
-        .is_some_and(|k| !k.is_empty())
-    {
+    if config.groq_api_key.as_ref().is_some_and(|k| !k.is_empty()) {
         return true;
     }
     if config

@@ -94,19 +94,13 @@ impl UsageStats {
         let n = self.total_dictations as f64;
 
         // Cumulative moving average: avg_new = avg_old + (value - avg_old) / n
-        self.avg_stt_latency_ms +=
-            (stt_latency_ms as f64 - self.avg_stt_latency_ms) / n;
-        self.avg_llm_latency_ms +=
-            (llm_latency_ms as f64 - self.avg_llm_latency_ms) / n;
-        self.avg_total_latency_ms +=
-            (total_latency_ms as f64 - self.avg_total_latency_ms) / n;
+        self.avg_stt_latency_ms += (stt_latency_ms as f64 - self.avg_stt_latency_ms) / n;
+        self.avg_llm_latency_ms += (llm_latency_ms as f64 - self.avg_llm_latency_ms) / n;
+        self.avg_total_latency_ms += (total_latency_ms as f64 - self.avg_total_latency_ms) / n;
 
         self.estimated_cost_usd += COST_PER_DICTATION_USD;
 
-        *self
-            .provider_usage
-            .entry(provider.to_string())
-            .or_insert(0) += 1;
+        *self.provider_usage.entry(provider.to_string()).or_insert(0) += 1;
     }
 
     /// Reset all statistics to their default (zero) values.
@@ -191,11 +185,11 @@ impl UsageStats {
         };
 
         // Ensure the parent directory exists.
-        if let Some(parent) = path.parent() {
-            if let Err(e) = std::fs::create_dir_all(parent) {
-                tracing::warn!(error = %e, "failed to create stats directory");
-                return;
-            }
+        if let Some(parent) = path.parent()
+            && let Err(e) = std::fs::create_dir_all(parent)
+        {
+            tracing::warn!(error = %e, "failed to create stats directory");
+            return;
         }
 
         let json = self.to_json();
@@ -208,34 +202,42 @@ impl UsageStats {
 
     /// Best-effort JSON parser for our known stats format.
     fn parse_json(s: &str) -> Option<Self> {
-        let mut stats = Self::default();
+        let total_dictations = Self::extract_u64(s, "total_dictations")?;
+        let total_duration_secs = Self::extract_f64(s, "total_duration_secs")?;
+        let avg_stt_latency_ms = Self::extract_f64(s, "avg_stt_latency_ms")?;
+        let avg_llm_latency_ms = Self::extract_f64(s, "avg_llm_latency_ms")?;
+        let avg_total_latency_ms = Self::extract_f64(s, "avg_total_latency_ms")?;
+        let estimated_cost_usd = Self::extract_f64(s, "estimated_cost_usd")?;
 
-        stats.total_dictations = Self::extract_u64(s, "total_dictations")?;
-        stats.total_duration_secs = Self::extract_f64(s, "total_duration_secs")?;
-        stats.avg_stt_latency_ms = Self::extract_f64(s, "avg_stt_latency_ms")?;
-        stats.avg_llm_latency_ms = Self::extract_f64(s, "avg_llm_latency_ms")?;
-        stats.avg_total_latency_ms = Self::extract_f64(s, "avg_total_latency_ms")?;
-        stats.estimated_cost_usd = Self::extract_f64(s, "estimated_cost_usd")?;
+        let mut stats = Self {
+            total_dictations,
+            total_duration_secs,
+            avg_stt_latency_ms,
+            avg_llm_latency_ms,
+            avg_total_latency_ms,
+            estimated_cost_usd,
+            ..Self::default()
+        };
 
         // Parse provider_usage object.
         let pu_key = "\"provider_usage\":";
         if let Some(start) = s.find(pu_key) {
             let rest = &s[start + pu_key.len()..];
-            if let Some(obj_start) = rest.find('{') {
-                if let Some(obj_end) = rest[obj_start..].find('}') {
-                    let inner = &rest[obj_start + 1..obj_start + obj_end];
-                    // Parse entries like "cerebras":5,"groq":3
-                    for entry in inner.split(',') {
-                        let entry = entry.trim();
-                        if entry.is_empty() {
-                            continue;
-                        }
-                        let parts: Vec<&str> = entry.splitn(2, ':').collect();
-                        if parts.len() == 2 {
-                            let key = parts[0].trim().trim_matches('"');
-                            if let Ok(val) = parts[1].trim().parse::<u64>() {
-                                stats.provider_usage.insert(key.to_string(), val);
-                            }
+            if let Some(obj_start) = rest.find('{')
+                && let Some(obj_end) = rest[obj_start..].find('}')
+            {
+                let inner = &rest[obj_start + 1..obj_start + obj_end];
+                // Parse entries like "cerebras":5,"groq":3
+                for entry in inner.split(',') {
+                    let entry = entry.trim();
+                    if entry.is_empty() {
+                        continue;
+                    }
+                    let parts: Vec<&str> = entry.splitn(2, ':').collect();
+                    if parts.len() == 2 {
+                        let key = parts[0].trim().trim_matches('"');
+                        if let Ok(val) = parts[1].trim().parse::<u64>() {
+                            stats.provider_usage.insert(key.to_string(), val);
                         }
                     }
                 }
@@ -250,7 +252,7 @@ impl UsageStats {
         let pattern = format!("\"{}\":", key);
         let start = s.find(&pattern)? + pattern.len();
         let rest = s[start..].trim_start();
-        let end = rest.find(|c: char| c == ',' || c == '}' || c == ' ')?;
+        let end = rest.find([',', '}', ' '])?;
         rest[..end].parse().ok()
     }
 
@@ -259,7 +261,7 @@ impl UsageStats {
         let pattern = format!("\"{}\":", key);
         let start = s.find(&pattern)? + pattern.len();
         let rest = s[start..].trim_start();
-        let end = rest.find(|c: char| c == ',' || c == '}' || c == ' ')?;
+        let end = rest.find([',', '}', ' '])?;
         rest[..end].parse().ok()
     }
 }

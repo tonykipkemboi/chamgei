@@ -36,18 +36,10 @@ pub struct CorrectionEntry {
 // ---------------------------------------------------------------------------
 
 /// Persistent log of user corrections, capped at [`MAX_LOG_ENTRIES`].
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CorrectionLog {
     #[serde(default)]
     entries: Vec<CorrectionEntry>,
-}
-
-impl Default for CorrectionLog {
-    fn default() -> Self {
-        Self {
-            entries: Vec::new(),
-        }
-    }
 }
 
 impl CorrectionLog {
@@ -279,12 +271,7 @@ mod tests {
     fn log_enforces_max_entries() {
         let mut log = CorrectionLog::new();
         for i in 0..1050 {
-            log.record(
-                format!("word{i}"),
-                format!("fix{i}"),
-                "TestApp",
-                i as u64,
-            );
+            log.record(format!("word{i}"), format!("fix{i}"), "TestApp", i as u64);
         }
         assert_eq!(log.entries().len(), MAX_LOG_ENTRIES);
         // Oldest entries should have been dropped — first entry is word50.

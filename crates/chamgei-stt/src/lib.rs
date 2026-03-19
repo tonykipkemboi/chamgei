@@ -28,7 +28,10 @@ fn suppress_stderr() -> Option<SuppressStderr> {
         .open("/dev/null")
         .ok()?;
     unsafe { libc::dup2(devnull.as_raw_fd(), stderr_fd) };
-    Some(SuppressStderr { saved_fd, stderr_fd })
+    Some(SuppressStderr {
+        saved_fd,
+        stderr_fd,
+    })
 }
 
 #[cfg(unix)]
@@ -74,26 +77,24 @@ pub struct Transcript {
 /// Trait for speech-to-text engines.
 pub trait SttEngine: Send + Sync {
     /// Transcribe audio samples (16kHz mono f32) to text.
-    fn transcribe(&self, samples: &[f32]) -> impl std::future::Future<Output = Result<Transcript>> + Send;
+    fn transcribe(
+        &self,
+        samples: &[f32],
+    ) -> impl std::future::Future<Output = Result<Transcript>> + Send;
 }
 
 /// Available Whisper model sizes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WhisperModel {
     /// ~75MB, fastest, lowest accuracy.
     Tiny,
     /// ~250MB, good balance (default).
+    #[default]
     Small,
     /// ~750MB, better accuracy.
     Medium,
     /// ~1.5GB, best accuracy.
     Large,
-}
-
-impl Default for WhisperModel {
-    fn default() -> Self {
-        Self::Small
-    }
 }
 
 impl WhisperModel {
@@ -155,7 +156,10 @@ impl LocalWhisperEngine {
         let ctx_params = WhisperContextParameters::default();
         let _guard = suppress_stderr(); // suppress whisper.cpp C-level output
         let ctx = WhisperContext::new_with_params(model_path, ctx_params).map_err(|e| {
-            SttError::ModelNotFound(format!("failed to load whisper model at {}: {}", model_path, e))
+            SttError::ModelNotFound(format!(
+                "failed to load whisper model at {}: {}",
+                model_path, e
+            ))
         })?;
         drop(_guard); // restore stderr
 
@@ -425,9 +429,11 @@ impl SttEngine for GroqWhisperEngine {
                 .text()
                 .await
                 .unwrap_or_else(|_| "unable to read response body".to_string());
-            return Err(
-                SttError::ApiError(format!("Groq API returned {}: {}", status, error_body)).into(),
-            );
+            return Err(SttError::ApiError(format!(
+                "Groq API returned {}: {}",
+                status, error_body
+            ))
+            .into());
         }
 
         let groq_resp: GroqTranscriptionResponse = response

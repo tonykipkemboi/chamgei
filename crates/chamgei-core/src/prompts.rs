@@ -19,7 +19,8 @@ CRITICAL RULES:
 - Output the cleaned text and NOTHING else.";
 
 /// Additional instructions for code editor contexts.
-const CODE_EDITOR_CONTEXT: &str = "\n\nAdditional context: the user is dictating into a CODE EDITOR.
+const CODE_EDITOR_CONTEXT: &str =
+    "\n\nAdditional context: the user is dictating into a CODE EDITOR.
 - Preserve all technical terms, function names, variable names, and identifiers exactly.
 - Convert spoken operators to their symbolic form:
   - \"equals equals\" or \"double equals\" → \"==\"
@@ -45,7 +46,8 @@ const CODE_EDITOR_CONTEXT: &str = "\n\nAdditional context: the user is dictating
 - If the user is clearly dictating a comment, format it as a code comment.";
 
 /// Additional instructions for messaging app contexts.
-const MESSAGING_CONTEXT: &str = "\n\nAdditional context: the user is dictating into a MESSAGING APP.
+const MESSAGING_CONTEXT: &str =
+    "\n\nAdditional context: the user is dictating into a MESSAGING APP.
 - Keep the tone casual and conversational.
 - Use short sentences.
 - Contractions are preferred (\"don't\" over \"do not\").
@@ -61,7 +63,8 @@ const EMAIL_CONTEXT: &str = "\n\nAdditional context: the user is dictating into 
 - Organize longer dictations into logical paragraphs.";
 
 /// Additional instructions for document editor contexts.
-const DOCUMENT_CONTEXT: &str = "\n\nAdditional context: the user is dictating into a DOCUMENT EDITOR.
+const DOCUMENT_CONTEXT: &str =
+    "\n\nAdditional context: the user is dictating into a DOCUMENT EDITOR.
 - Format text in full, well-structured paragraphs.
 - Use proper sentence structure and transitions.
 - \"New paragraph\" should start a new paragraph (double newline).
@@ -385,7 +388,10 @@ mod tests {
     #[test]
     fn test_case_insensitive() {
         assert_eq!(detect_context("SLACK", None), AppContext::Messaging);
-        assert_eq!(detect_context("visual studio code", None), AppContext::CodeEditor);
+        assert_eq!(
+            detect_context("visual studio code", None),
+            AppContext::CodeEditor
+        );
         assert_eq!(detect_context("TERMINAL", None), AppContext::Terminal);
     }
 

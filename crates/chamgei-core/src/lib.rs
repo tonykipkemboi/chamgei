@@ -44,7 +44,14 @@ impl std::fmt::Debug for ProviderConfig {
         f.debug_struct("ProviderConfig")
             .field("name", &self.name)
             .field("model", &self.model)
-            .field("api_key", &if self.api_key.is_empty() { "[empty]" } else { "[REDACTED]" })
+            .field(
+                "api_key",
+                &if self.api_key.is_empty() {
+                    "[empty]"
+                } else {
+                    "[REDACTED]"
+                },
+            )
             .field("base_url", &self.base_url)
             .finish()
     }
@@ -109,10 +116,10 @@ impl Default for ChamgeiConfig {
 /// Load configuration from TOML file, falling back to defaults.
 pub fn load_config(path: &str) -> Result<ChamgeiConfig> {
     let metadata = std::fs::metadata(path);
-    if let Ok(meta) = &metadata {
-        if meta.len() > 1_048_576 {
-            anyhow::bail!("config file too large (max 1MB)");
-        }
+    if let Ok(meta) = &metadata
+        && meta.len() > 1_048_576
+    {
+        anyhow::bail!("config file too large (max 1MB)");
     }
     match std::fs::read_to_string(path) {
         Ok(contents) => Ok(toml::from_str(&contents)?),
@@ -163,12 +170,7 @@ fn make_provider(pc: &ProviderConfig) -> chamgei_llm::OpenAICompatibleProvider {
         .to_string()
     });
 
-    chamgei_llm::OpenAICompatibleProvider::new(
-        &pc.name,
-        base_url,
-        &pc.api_key,
-        &pc.model,
-    )
+    chamgei_llm::OpenAICompatibleProvider::new(&pc.name, base_url, &pc.api_key, &pc.model)
 }
 
 fn build_provider_chain(config: &ChamgeiConfig) -> chamgei_llm::ProviderChain {
@@ -230,10 +232,7 @@ fn has_llm_providers(config: &ChamgeiConfig) -> bool {
         .cerebras_api_key
         .as_ref()
         .is_some_and(|k| !k.is_empty())
-        || config
-            .groq_api_key
-            .as_ref()
-            .is_some_and(|k| !k.is_empty())
+        || config.groq_api_key.as_ref().is_some_and(|k| !k.is_empty())
 }
 
 /// Resolve the Whisper model directory from env or defaults.
@@ -417,7 +416,6 @@ impl Pipeline {
         llm_enabled: bool,
     ) -> Result<()> {
         // --- STT (model already loaded at startup) ---
-        use chamgei_stt::SttEngine;
         let transcript = self.stt.transcribe(&segment.samples).await?;
 
         if transcript.text.is_empty() {

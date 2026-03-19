@@ -12,8 +12,8 @@ use indicatif::{ProgressBar, ProgressStyle};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-use chamgei_core::{ChamgeiConfig, Pipeline, load_config};
 use chamgei_core::onboarding;
+use chamgei_core::{ChamgeiConfig, Pipeline, load_config};
 
 // ── Session stats (shared across the tracing layer) ────────────────────────
 
@@ -40,8 +40,7 @@ impl SessionStats {
         }
         // Estimated cost: ~130 input + 80 output tokens at Groq pricing
         // ($0.05/$0.08 per million tokens).
-        let cost_per_dictation =
-            (130.0 * 0.05 + 80.0 * 0.08) / 1_000_000.0;
+        let cost_per_dictation = (130.0 * 0.05 + 80.0 * 0.08) / 1_000_000.0;
         if let Ok(mut cost) = self.total_cost_usd.lock() {
             *cost += cost_per_dictation;
         }
@@ -81,10 +80,7 @@ impl UiLayer {
     }
 
     fn set_idle(&self) {
-        let idle_style = ProgressStyle::with_template(
-            "  {msg}",
-        )
-        .unwrap();
+        let idle_style = ProgressStyle::with_template("  {msg}").unwrap();
         self.spinner.set_style(idle_style);
         self.spinner.set_message(format!(
             "{} {} — waiting for Fn",
@@ -98,54 +94,47 @@ impl UiLayer {
         if let Ok(mut start) = self.recording_start.lock() {
             *start = Some(Instant::now());
         }
-        let rec_style = ProgressStyle::with_template(
-            "  {spinner} {msg}",
-        )
-        .unwrap()
-        .tick_strings(&["●", "◉", "○", "◉", "●"]);
+        let rec_style = ProgressStyle::with_template("  {spinner} {msg}")
+            .unwrap()
+            .tick_strings(&["●", "◉", "○", "◉", "●"]);
         self.spinner.set_style(rec_style);
-        self.spinner.set_message(format!(
-            "{}",
-            style("Recording...").red().bold(),
-        ));
-        self.spinner.enable_steady_tick(std::time::Duration::from_millis(250));
+        self.spinner
+            .set_message(format!("{}", style("Recording...").red().bold(),));
+        self.spinner
+            .enable_steady_tick(std::time::Duration::from_millis(250));
     }
 
     fn update_recording_elapsed(&self) {
-        if let Ok(guard) = self.recording_start.lock() {
-            if let Some(start) = *guard {
-                let elapsed = start.elapsed().as_secs_f64();
-                self.spinner.set_message(format!(
-                    "{} — {:.1}s",
-                    style("Recording").red().bold(),
-                    elapsed,
-                ));
-            }
+        if let Ok(guard) = self.recording_start.lock()
+            && let Some(start) = *guard
+        {
+            let elapsed = start.elapsed().as_secs_f64();
+            self.spinner.set_message(format!(
+                "{} — {:.1}s",
+                style("Recording").red().bold(),
+                elapsed,
+            ));
         }
     }
 
     fn set_processing(&self, detail: &str) {
         self.spinner.disable_steady_tick();
-        let proc_style = ProgressStyle::with_template(
-            "  {spinner:.cyan} {msg}",
-        )
-        .unwrap()
-        .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏", "⠋"]);
+        let proc_style = ProgressStyle::with_template("  {spinner:.cyan} {msg}")
+            .unwrap()
+            .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏", "⠋"]);
         self.spinner.set_style(proc_style);
         self.spinner.set_message(format!(
             "{} — {}",
             style("Processing").cyan().bold(),
             style(detail).dim(),
         ));
-        self.spinner.enable_steady_tick(std::time::Duration::from_millis(80));
+        self.spinner
+            .enable_steady_tick(std::time::Duration::from_millis(80));
     }
 
     fn set_done(&self, text: &str, stt_ms: &str, llm_ms: Option<&str>) {
         self.spinner.disable_steady_tick();
-        let done_style = ProgressStyle::with_template(
-            "  {msg}",
-        )
-        .unwrap();
+        let done_style = ProgressStyle::with_template("  {msg}").unwrap();
         self.spinner.set_style(done_style);
 
         let latency = if let Some(llm) = llm_ms {
@@ -183,10 +172,7 @@ impl UiLayer {
 
     fn set_error(&self, msg: &str) {
         self.spinner.disable_steady_tick();
-        let err_style = ProgressStyle::with_template(
-            "  {msg}",
-        )
-        .unwrap();
+        let err_style = ProgressStyle::with_template("  {msg}").unwrap();
         self.spinner.set_style(err_style);
         self.spinner.set_message(format!(
             "{} {} — {}",
@@ -221,7 +207,11 @@ where
             self.set_processing("transcribing...");
         } else if msg.contains("transcription complete") {
             // Store STT latency for the done message.
-            let stt_ms = visitor.fields.get("latency_ms").cloned().unwrap_or_default();
+            let stt_ms = visitor
+                .fields
+                .get("latency_ms")
+                .cloned()
+                .unwrap_or_default();
             let text = visitor.fields.get("text").cloned().unwrap_or_default();
             if let Ok(mut guard) = STT_RESULT.lock() {
                 *guard = Some(SttResult {
@@ -232,7 +222,11 @@ where
             }
             self.set_processing("formatting with LLM...");
         } else if msg.contains("LLM formatting complete") {
-            let llm_ms = visitor.fields.get("latency_ms").cloned().unwrap_or_default();
+            let llm_ms = visitor
+                .fields
+                .get("latency_ms")
+                .cloned()
+                .unwrap_or_default();
             let stt = STT_RESULT.lock().ok().and_then(|mut g| {
                 if let Some(ref mut r) = *g {
                     r.done_shown = true;
@@ -245,10 +239,10 @@ where
         } else if msg.contains("text injected successfully") {
             // If LLM was not used, show done with just STT latency.
             let stt = STT_RESULT.lock().ok().and_then(|g| g.clone());
-            if let Some(stt) = &stt {
-                if !stt.done_shown {
-                    self.set_done(&stt.text, &stt.latency_ms, None);
-                }
+            if let Some(stt) = &stt
+                && !stt.done_shown
+            {
+                self.set_done(&stt.text, &stt.latency_ms, None);
             }
             // After injection, schedule a return to idle.
             let spinner = self.spinner.clone();
@@ -263,7 +257,11 @@ where
                 ));
             });
         } else if msg.contains("LLM formatting failed") || msg.contains("failed to process audio") {
-            let error_detail = visitor.fields.get("error").cloned().unwrap_or_else(|| msg.clone());
+            let error_detail = visitor
+                .fields
+                .get("error")
+                .cloned()
+                .unwrap_or_else(|| msg.clone());
             self.set_error(&error_detail);
             // Return to idle after a delay.
             let spinner = self.spinner.clone();
@@ -312,7 +310,8 @@ impl tracing::field::Visit for MessageVisitor {
         if field.name() == "message" {
             self.message = val.trim_matches('"').to_string();
         } else {
-            self.fields.insert(field.name().to_string(), val.trim_matches('"').to_string());
+            self.fields
+                .insert(field.name().to_string(), val.trim_matches('"').to_string());
         }
     }
 
@@ -320,16 +319,19 @@ impl tracing::field::Visit for MessageVisitor {
         if field.name() == "message" {
             self.message = value.to_string();
         } else {
-            self.fields.insert(field.name().to_string(), value.to_string());
+            self.fields
+                .insert(field.name().to_string(), value.to_string());
         }
     }
 
     fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
-        self.fields.insert(field.name().to_string(), value.to_string());
+        self.fields
+            .insert(field.name().to_string(), value.to_string());
     }
 
     fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {
-        self.fields.insert(field.name().to_string(), format!("{:.1}", value));
+        self.fields
+            .insert(field.name().to_string(), format!("{:.1}", value));
     }
 }
 
