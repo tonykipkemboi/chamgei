@@ -2,64 +2,63 @@
 ---
 
 <section class="max-w-5xl mx-auto px-6 py-10">
-  <h2 class="text-3xl font-bold text-center mb-3" style="color:#ffffff;">See how it works</h2>
-  <p class="text-center mb-10" style="color:#a0a0b0;">From microphone to text at your cursor — the full pipeline in one diagram.</p>
+  <div class="text-center mb-12">
+    <h2 class="text-4xl sm:text-5xl font-bold mb-4 grad-text-white">How it works</h2>
+    <p class="text-lg" style="color:#6b7fa0;">Five steps from ⌥Space to text at your cursor.</p>
+  </div>
 
-  <!-- Terminal chrome wrapper -->
-  <div class="rounded-2xl border border-[#2a3a5c] overflow-hidden shadow-2xl" style="background-color:#0a0f1e;">
-    <!-- Window bar -->
-    <div class="flex items-center gap-2 px-4 py-3 border-b border-[#2a3a5c]" style="background-color:#131c30;">
-      <span class="w-3 h-3 rounded-full bg-[#ef4444]"></span>
-      <span class="w-3 h-3 rounded-full bg-[#f59e0b]"></span>
-      <span class="w-3 h-3 rounded-full bg-[#22c55e]"></span>
-      <span class="ml-3 text-xs font-mono" style="color:#a0a0b0;">chamgei — how it works</span>
-    </div>
-
-    <!-- Diagram or placeholder -->
-    <div class="p-6">
-      <!-- If flow-diagram.png is present, show it; otherwise show the ASCII flow -->
-      <noscript>
-        <img src="/flow-diagram.png" alt="chamgei data flow diagram" class="w-full rounded-lg" />
-      </noscript>
-      <div id="demo-content">
-        <!-- ASCII flow shown until real diagram is swapped in -->
-        <div class="font-mono text-sm leading-loose overflow-x-auto" style="color:#e0e0e0;">
-          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 flex-wrap">
-            <span class="px-3 py-1.5 rounded-lg border border-[#4a9eed]" style="background-color:#1e3a5f;color:#4a9eed;">Microphone</span>
-            <span class="sm:px-2" style="color:#2a3a5c;">──⌥Space──▶</span>
-            <span class="px-3 py-1.5 rounded-lg border border-[#06b6d4]" style="background-color:#1a4d4d;color:#06b6d4;">VAD</span>
-            <span class="sm:px-2" style="color:#2a3a5c;">──────────▶</span>
-            <div class="flex flex-col gap-1">
-              <span class="px-3 py-1.5 rounded-lg border border-[#22c55e]" style="background-color:#1a4d2e;color:#22c55e;">Deepgram Nova-3 ☁ ~200ms</span>
-              <span class="px-3 py-1.5 rounded-lg border border-[#8b5cf6]" style="background-color:#2d1b69;color:#8b5cf6;">whisper.cpp (local, offline)</span>
-            </div>
-            <span class="sm:px-2" style="color:#2a3a5c;">──transcript──▶</span>
-            <div class="flex flex-col gap-1">
-              <span class="px-3 py-1.5 rounded-lg border border-[#f59e0b]" style="background-color:#5c3d1a;color:#f59e0b;">LLM polish (optional)</span>
-            </div>
-            <span class="sm:px-2" style="color:#2a3a5c;">──inject──▶</span>
-            <span class="px-3 py-1.5 rounded-lg border border-[#0d9488]" style="background-color:#134e4a;color:#0d9488;">Any App ✓</span>
+  <!-- Step flow -->
+  <div class="flex flex-col sm:flex-row items-stretch gap-3">
+    {[
+      { num:"1", label:"Hold ⌥Space", sub:"Start recording", color:"#0ea5e9", bg:"rgba(14,165,233,0.08)" },
+      { num:"2", label:"Speak", sub:"VAD detects voice", color:"#06d6a0", bg:"rgba(6,214,160,0.08)" },
+      { num:"3", label:"Release", sub:"Sends to STT engine", color:"#a78bfa", bg:"rgba(167,139,250,0.08)" },
+      { num:"4", label:"Transcribed", sub:"~200ms with Deepgram", color:"#f59e0b", bg:"rgba(245,158,11,0.08)" },
+      { num:"5", label:"Injected", sub:"Text at your cursor", color:"#34d399", bg:"rgba(52,211,153,0.08)" },
+    ].map((step, i, arr) => (
+      <div class="flex sm:flex-col items-center gap-3 flex-1">
+        <div
+          class="flex-1 sm:w-full rounded-2xl p-5 flex sm:flex-col items-center sm:items-start gap-4 sm:gap-3 border"
+          style={`background:${step.bg}; border-color:${step.color}22;`}
+        >
+          <div
+            class="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
+            style={`background:${step.color}22; color:${step.color};`}
+          >
+            {step.num}
           </div>
-
-          <div class="mt-6 space-y-1 text-xs" style="color:#a0a0b0;">
-            <p>▸ Audio never leaves your machine with local STT</p>
-            <p>▸ With cloud STT, only audio is sent — transcript stays local</p>
-            <p>▸ API keys stored in macOS Keychain &nbsp;·&nbsp; No telemetry &nbsp;·&nbsp; No analytics</p>
+          <div>
+            <div class="font-semibold text-sm" style="color:#e8f0fa;">{step.label}</div>
+            <div class="text-xs mt-0.5" style="color:#6b7fa0;">{step.sub}</div>
           </div>
         </div>
+        {i < arr.length - 1 && (
+          <div class="hidden sm:flex items-center justify-center w-6 shrink-0" style="color:#1e2e4a;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        )}
       </div>
+    ))}
+  </div>
+
+  <!-- Terminal demo block -->
+  <div class="mt-8 rounded-2xl overflow-hidden border border-[#1e2e4a] glow-teal-sm">
+    <div class="flex items-center gap-2 px-5 py-3 border-b border-[#1e2e4a]" style="background:#080f1e;">
+      <span class="w-3 h-3 rounded-full" style="background:#ef4444;"></span>
+      <span class="w-3 h-3 rounded-full" style="background:#f59e0b;"></span>
+      <span class="w-3 h-3 rounded-full" style="background:#22c55e;"></span>
+      <span class="ml-3 text-xs font-mono" style="color:#3d5278;">chamgei — terminal</span>
+    </div>
+    <div class="p-6 font-mono text-sm leading-loose" style="background:#060d1a;">
+      <div><span style="color:#3d5278;">$</span> <span style="color:#6b7fa0;">chamgei</span></div>
+      <div class="mt-2" style="color:#6b7fa0;">  ✦ chamgei v0.3.0 — push ⌥Space to dictate</div>
+      <div style="color:#6b7fa0;">  ✦ STT: deepgram (nova-3) · LLM: none</div>
+      <div class="mt-2" style="color:#3d5278;">─────────────────────────────────────</div>
+      <div class="mt-2"><span style="color:#f59e0b;">●</span> <span style="color:#6b7fa0;">Listening... (hold ⌥Space)</span></div>
+      <div class="mt-1"><span style="color:#0ea5e9;">◉</span> <span style="color:#0ea5e9;">Recording</span> <span style="color:#3d5278;">[0.8s]</span></div>
+      <div class="mt-1"><span style="color:#a78bfa;">◈</span> <span style="color:#6b7fa0;">Transcribing via Deepgram...</span></div>
+      <div class="mt-1"><span style="color:#06d6a0;">✓</span> <span style="color:#06d6a0;">"Open a pull request for the auth refactor"</span></div>
+      <div class="mt-1 ml-4 text-xs" style="color:#3d5278;">injected at cursor · 187ms · 7 words</div>
     </div>
   </div>
 </section>
-
-<script>
-  // Swap in the real diagram image if it exists
-  const img = new Image();
-  img.src = '/flow-diagram.png';
-  img.onload = () => {
-    const el = document.getElementById('demo-content');
-    if (el) {
-      el.innerHTML = `<img src="/flow-diagram.png" alt="chamgei data flow diagram" class="w-full rounded-lg" />`;
-    }
-  };
-</script>

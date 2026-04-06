@@ -1,42 +1,58 @@
 ---
 ---
 
-<section class="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-20 pb-16">
-  <!-- Animated badge -->
-  <div class="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#2a3a5c] text-xs font-mono hotkey-badge" style="background-color:#1f2b47;color:#0d9488;">
-    <span class="w-2 h-2 rounded-full bg-[#0d9488] animate-pulse"></span>
-    Hold ⌥Space to dictate
+<section class="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-20 overflow-hidden bg-grid">
+
+  <!-- Ambient glows -->
+  <div class="hero-glow w-[600px] h-[600px] opacity-20" style="background:radial-gradient(circle, #0ea5e9 0%, transparent 70%); top:-100px; left:50%; transform:translateX(-50%);"></div>
+  <div class="hero-glow w-[400px] h-[400px] opacity-10" style="background:radial-gradient(circle, #06d6a0 0%, transparent 70%); bottom:0; right:10%;"></div>
+  <div class="hero-glow w-[300px] h-[300px] opacity-8" style="background:radial-gradient(circle, #818cf8 0%, transparent 70%); bottom:100px; left:5%;"></div>
+
+  <!-- Recording badge -->
+  <div class="relative z-10 mb-8 inline-flex items-center gap-2.5 px-4 py-2 rounded-full glass ring-pulse text-xs font-mono" style="color:#0ea5e9;">
+    <span class="relative flex h-2 w-2">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background:#0ea5e9;"></span>
+      <span class="relative inline-flex rounded-full h-2 w-2" style="background:#0ea5e9;"></span>
+    </span>
+    Hold ⌥Space · Speak · Release
   </div>
 
   <!-- Headline -->
-  <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-4 leading-none" style="color:#ffffff;">
-    Speak.<br class="sm:hidden" />
-    <span style="color:#0d9488;"> Release.</span><br class="sm:hidden" />
-    Done.
-  </h1>
+  <div class="relative z-10 mb-6">
+    <h1 class="text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight leading-[0.95] mb-0">
+      <span class="grad-text-white text-glow block">Speak.</span>
+      <span class="grad-text block">Release.</span>
+      <span class="grad-text-white block">Done.</span>
+    </h1>
+  </div>
+
+  <!-- Animated waveform -->
+  <div class="relative z-10 flex items-center justify-center gap-[3px] h-16 mb-8" id="waveform" aria-hidden="true">
+    {Array.from({length: 10}).map((_, i) => (
+      <div class="wave-bar w-[5px]" style="background:linear-gradient(to top, #0ea5e9, #06d6a0); height:8px;"></div>
+    ))}
+  </div>
 
   <!-- Subtext -->
-  <p class="text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style="color:#a0a0b0;">
-    Open-source macOS voice dictation. Hold&nbsp;⌥Space, speak, release —&nbsp;text appears at your cursor in <em>any</em>&nbsp;app.
-    Powered by&nbsp;<strong style="color:#e0e0e0;">Deepgram&nbsp;Nova-3</strong> (~200ms latency).
+  <p class="relative z-10 text-lg sm:text-xl max-w-xl mx-auto mb-10 leading-relaxed" style="color:#6b7fa0;">
+    Open-source macOS voice dictation. Text appears at your cursor in <em style="color:#d4dce8;">any&nbsp;app</em> — powered by <strong style="color:#d4dce8;">Deepgram&nbsp;Nova-3</strong>.
   </p>
 
   <!-- CTAs -->
-  <div class="flex flex-col sm:flex-row items-center gap-4 w-full max-w-xl mx-auto">
-    <!-- Copy-on-click install command -->
+  <div class="relative z-10 flex flex-col sm:flex-row items-center gap-3 w-full max-w-lg mx-auto">
+
+    <!-- Copy-on-click install -->
     <button
       id="hero-install-btn"
-      class="group flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#2a3a5c] hover:border-[#0d9488] transition-all cursor-pointer text-left"
-      style="background-color:#1f2b47;"
+      class="group flex-1 w-full flex items-center gap-3 px-4 py-3.5 rounded-xl glass hover:border-[rgba(14,165,233,0.4)] transition-all cursor-pointer text-left"
       aria-label="Copy install command"
     >
-      <span style="color:#a0a0b0;" class="font-mono text-sm shrink-0">$</span>
-      <code class="font-mono text-sm truncate flex-1" style="color:#0d9488;">
-        curl -fsSL https://raw.githubusercontent.com/tonykipkemboi/chamgei/main/install.sh | bash
+      <span class="font-mono text-xs shrink-0" style="color:#6b7fa0;">$</span>
+      <code class="font-mono text-xs truncate flex-1" style="color:#0ea5e9;">
+        curl -fsSL …/install.sh | bash
       </code>
-      <!-- Copy icon -->
-      <span id="hero-copy-icon" class="shrink-0 transition-colors" style="color:#a0a0b0;">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <span id="hero-copy-icon" class="shrink-0" style="color:#6b7fa0;">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
         </svg>
@@ -48,26 +64,36 @@
       href="https://github.com/tonykipkemboi/chamgei/releases/latest"
       target="_blank"
       rel="noopener noreferrer"
-      class="flex items-center gap-2 px-5 py-3 rounded-xl font-medium text-sm transition-colors hover:opacity-90"
-      style="background-color:#0d9488;color:#ffffff;"
+      class="btn-shimmer flex items-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-sm transition-all hover:scale-[1.02] active:scale-[0.98] glow-teal-sm"
+      style="color:#ffffff;"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
       </svg>
-      Download .dmg
+      Download for Mac
     </a>
   </div>
 
   <!-- Copy feedback -->
-  <p id="hero-copy-feedback" class="mt-3 text-sm transition-opacity duration-300 opacity-0" style="color:#0d9488;">
-    Copied to clipboard!
+  <p id="hero-copy-feedback" class="relative z-10 mt-3 text-xs transition-opacity duration-300 opacity-0" style="color:#06d6a0;">
+    ✓ Copied to clipboard
   </p>
 
   <!-- Trust line -->
-  <p class="mt-6 text-xs" style="color:#a0a0b0;">
-    macOS 13+ &nbsp;·&nbsp; Apple Silicon &amp; Intel &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; No telemetry
+  <p class="relative z-10 mt-8 text-xs flex flex-wrap items-center justify-center gap-x-3 gap-y-1" style="color:#3d5278;">
+    <span>macOS 13+</span><span style="color:#1e2e4a;">·</span>
+    <span>Apple Silicon &amp; Intel</span><span style="color:#1e2e4a;">·</span>
+    <span>MIT License</span><span style="color:#1e2e4a;">·</span>
+    <span>No telemetry</span>
   </p>
+
+  <!-- Scroll hint -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce" style="color:#1e2e4a;">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+    </svg>
+  </div>
 </section>
 
 <script>
@@ -76,25 +102,26 @@
   const icon = document.getElementById('hero-copy-icon');
   const CMD = 'curl -fsSL https://raw.githubusercontent.com/tonykipkemboi/chamgei/main/install.sh | bash';
 
-  const checkSvg = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-  </svg>`;
-  const copySvg = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-  </svg>`;
-
   btn?.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(CMD);
-      if (icon) { icon.innerHTML = checkSvg; icon.style.color = '#0d9488'; }
-      if (feedback) { feedback.classList.replace('opacity-0', 'opacity-100'); }
+      if (icon) icon.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="#06d6a0" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+      if (feedback) feedback.classList.replace('opacity-0', 'opacity-100');
       setTimeout(() => {
-        if (icon) { icon.innerHTML = copySvg; icon.style.color = '#a0a0b0'; }
-        if (feedback) { feedback.classList.replace('opacity-100', 'opacity-0'); }
+        if (icon) icon.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`;
+        if (icon) icon.style.color = '#6b7fa0';
+        if (feedback) feedback.classList.replace('opacity-100', 'opacity-0');
       }, 2000);
-    } catch {
-      window.getSelection()?.selectAllChildren(btn!);
-    }
+    } catch { window.getSelection()?.selectAllChildren(btn!); }
+  });
+
+  // Pause waveform when not "recording"
+  const waveform = document.getElementById('waveform');
+  let recording = false;
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey && e.code === 'Space') { recording = true; waveform?.classList.remove('wave-bars-paused'); }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space') { recording = false; waveform?.classList.add('wave-bars-paused'); }
   });
 </script>

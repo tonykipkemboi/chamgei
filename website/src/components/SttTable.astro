@@ -1,86 +1,60 @@
 ---
 const engines = [
-  {
-    name: 'Deepgram',
-    model: 'Nova-3',
-    quality: 5,
-    latency: '~200ms',
-    offline: false,
-    notes: 'smart_format, punctuation, best accuracy. Recommended.',
-    recommended: true,
-  },
-  {
-    name: 'Groq',
-    model: 'Whisper Large v3',
-    quality: 4,
-    latency: '~300ms',
-    offline: false,
-    notes: 'Fast cloud inference. Great fallback.',
-    recommended: false,
-  },
-  {
-    name: 'Local',
-    model: 'whisper.cpp',
-    quality: 3,
-    latency: 'varies',
-    offline: true,
-    notes: 'Runs on-device with Metal GPU acceleration. Zero cloud.',
-    recommended: false,
-  },
-  {
-    name: 'Cohere',
-    model: 'Custom server',
-    quality: 4,
-    latency: 'varies',
-    offline: true,
-    notes: 'Self-hosted endpoint. Configurable port.',
-    recommended: false,
-  },
+  { name:'Deepgram', model:'Nova-3', quality:5, latency:'~200ms', offline:false, notes:'smart_format + punctuation. Recommended.', color:'#06d6a0', recommended:true },
+  { name:'Groq',     model:'Whisper Large v3', quality:4, latency:'~300ms', offline:false, notes:'Fast cloud inference. Great fallback.', color:'#0ea5e9', recommended:false },
+  { name:'Local',    model:'whisper.cpp', quality:3, latency:'varies', offline:true,  notes:'On-device Metal GPU. Full offline.', color:'#a78bfa', recommended:false },
+  { name:'Cohere',   model:'Custom server', quality:4, latency:'varies', offline:true,  notes:'Self-hosted endpoint. Configurable port.', color:'#f59e0b', recommended:false },
 ];
 ---
 
-<section class="max-w-5xl mx-auto px-6 py-20">
-  <h2 class="text-3xl font-bold text-center mb-3" style="color:#ffffff;">Choose your STT engine</h2>
-  <p class="text-center mb-10" style="color:#a0a0b0;">Set <code class="font-mono text-xs px-1.5 py-0.5 rounded" style="background-color:#1f2b47;color:#0d9488;">stt_engine</code> in your config. Switch any time.</p>
+<section class="max-w-5xl mx-auto px-6 py-10">
+  <div class="text-center mb-12">
+    <h2 class="text-4xl sm:text-5xl font-bold mb-4 grad-text-white">Choose your STT engine</h2>
+    <p class="text-lg" style="color:#6b7fa0;">
+      Set <code class="font-mono text-xs px-2 py-0.5 rounded" style="background:#0c1528;color:#0ea5e9;border:1px solid #1e2e4a;">stt_engine</code> in your config. Switch any time.
+    </p>
+  </div>
 
-  <div class="overflow-x-auto rounded-xl border border-[#2a3a5c]">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-[#2a3a5c] text-xs uppercase tracking-wider" style="background-color:#1f2b47;color:#a0a0b0;">
-          <th class="text-left px-5 py-3">Engine</th>
-          <th class="text-left px-5 py-3">Model</th>
-          <th class="text-left px-5 py-3">Quality</th>
-          <th class="text-left px-5 py-3">Latency</th>
-          <th class="text-left px-5 py-3">Offline</th>
-          <th class="text-left px-5 py-3">Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        {engines.map(e => (
-          <tr
-            class={`border-b border-[#2a3a5c] last:border-0 transition-colors hover:bg-[#1f2b47] ${e.recommended ? 'border-l-2 border-l-[#0d9488]' : ''}`}
-            style="background-color:#131c30;"
-          >
-            <td class="px-5 py-4 font-semibold" style={e.recommended ? 'color:#0d9488;' : 'color:#e0e0e0;'}>
-              {e.name}
-              {e.recommended && <span class="ml-2 text-xs px-1.5 py-0.5 rounded-full font-mono" style="background-color:#134e4a;color:#0d9488;">recommended</span>}
-            </td>
-            <td class="px-5 py-4 font-mono text-xs" style="color:#a0a0b0;">{e.model}</td>
-            <td class="px-5 py-4">
-              <span style="color:#f59e0b;">{'★'.repeat(e.quality)}</span>
-              <span style="color:#2a3a5c;">{'★'.repeat(5 - e.quality)}</span>
-            </td>
-            <td class="px-5 py-4 font-mono text-xs" style="color:#e0e0e0;">{e.latency}</td>
-            <td class="px-5 py-4">
-              {e.offline
-                ? <span class="px-2 py-0.5 rounded-full text-xs" style="background-color:#1a4d2e;color:#22c55e;">Yes</span>
-                : <span class="px-2 py-0.5 rounded-full text-xs" style="background-color:#1f2b47;color:#a0a0b0;">No</span>
-              }
-            </td>
-            <td class="px-5 py-4 text-xs" style="color:#a0a0b0;">{e.notes}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+  <div class="space-y-3">
+    {engines.map(e => (
+      <div
+        class={`card-glow rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 border transition-all`}
+        style={`background:#0c1528; border-color:${e.color}22;`}
+      >
+        <!-- Name + recommended -->
+        <div class="sm:w-44 shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full shrink-0" style={`background:${e.color};`}></span>
+            <span class="font-semibold text-sm" style={`color:${e.color};`}>{e.name}</span>
+            {e.recommended && (
+              <span class="text-xs px-2 py-0.5 rounded-full font-mono" style={`background:${e.color}18;color:${e.color};border:1px solid ${e.color}30;`}>
+                recommended
+              </span>
+            )}
+          </div>
+          <div class="font-mono text-xs mt-1 ml-4" style="color:#3d5278;">{e.model}</div>
+        </div>
+
+        <!-- Quality stars -->
+        <div class="sm:w-28 shrink-0 ml-4 sm:ml-0">
+          <span style="color:#f59e0b;">{'★'.repeat(e.quality)}</span>
+          <span style="color:#1e2e4a;">{'★'.repeat(5 - e.quality)}</span>
+        </div>
+
+        <!-- Latency -->
+        <div class="sm:w-24 shrink-0 font-mono text-xs" style="color:#6b7fa0;">{e.latency}</div>
+
+        <!-- Offline badge -->
+        <div class="sm:w-20 shrink-0">
+          {e.offline
+            ? <span class="text-xs px-2.5 py-1 rounded-full" style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.2);">Offline ✓</span>
+            : <span class="text-xs px-2.5 py-1 rounded-full" style="background:rgba(107,127,160,0.1);color:#3d5278;border:1px solid #1e2e4a;">Cloud</span>
+          }
+        </div>
+
+        <!-- Notes -->
+        <div class="text-sm flex-1" style="color:#6b7fa0;">{e.notes}</div>
+      </div>
+    ))}
   </div>
 </section>

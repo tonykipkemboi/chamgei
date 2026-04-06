@@ -1,65 +1,162 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-base: #0f172a;
-  --color-bg-surface: #16213e;
-  --color-bg-card: #1f2b47;
-  --color-border: #2a3a5c;
-  --color-text: #e0e0e0;
-  --color-muted: #a0a0b0;
-  --color-accent: #0d9488;
-  --color-accent-hover: #14b8a6;
+  --color-bg-base: #060d1a;
+  --color-bg-surface: #0c1528;
+  --color-bg-card: #111e35;
+  --color-border: #1e2e4a;
+  --color-border-bright: #2a4060;
+  --color-text: #d4dce8;
+  --color-muted: #6b7fa0;
+  --color-accent: #0ea5e9;
+  --color-accent2: #06d6a0;
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
 
 body {
-  background-color: #0f172a;
-  color: #e0e0e0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #060d1a;
+  color: #d4dce8;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
-/* Fade-in animation for sections */
+/* ── Gradient text ── */
+.grad-text {
+  background: linear-gradient(135deg, #0ea5e9 0%, #06d6a0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.grad-text-white {
+  background: linear-gradient(160deg, #ffffff 30%, #7ab8d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Grid / dot pattern backgrounds ── */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(14,165,233,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(14,165,233,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.bg-dots {
+  background-image: radial-gradient(circle, rgba(14,165,233,0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ── Glow utilities ── */
+.glow-teal {
+  box-shadow: 0 0 30px -5px rgba(14,165,233,0.35), 0 0 60px -15px rgba(6,214,160,0.2);
+}
+
+.glow-teal-sm {
+  box-shadow: 0 0 15px -3px rgba(14,165,233,0.3);
+}
+
+.text-glow {
+  text-shadow: 0 0 40px rgba(14,165,233,0.4);
+}
+
+/* ── Glass card ── */
+.glass {
+  background: rgba(17, 30, 53, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(42, 64, 96, 0.6);
+}
+
+/* ── Gradient border card (hover) ── */
+.card-glow {
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 40%, rgba(14,165,233,0.0));
+  transition: background 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.card-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px -8px rgba(14,165,233,0.25), 0 0 0 1px rgba(14,165,233,0.2);
+}
+
+/* ── Ambient hero glow ── */
+.hero-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* ── Audio waveform animation ── */
+@keyframes wave1 { 0%,100%{height:8px}  50%{height:28px} }
+@keyframes wave2 { 0%,100%{height:16px} 50%{height:42px} }
+@keyframes wave3 { 0%,100%{height:28px} 50%{height:56px} }
+@keyframes wave4 { 0%,100%{height:20px} 50%{height:36px} }
+@keyframes wave5 { 0%,100%{height:10px} 50%{height:22px} }
+
+.wave-bar { border-radius: 2px; transition: background 0.3s; }
+.wave-bar:nth-child(1) { animation: wave1 0.9s ease-in-out infinite; }
+.wave-bar:nth-child(2) { animation: wave2 0.7s ease-in-out infinite 0.1s; }
+.wave-bar:nth-child(3) { animation: wave3 0.8s ease-in-out infinite 0.05s; }
+.wave-bar:nth-child(4) { animation: wave2 0.75s ease-in-out infinite 0.15s; }
+.wave-bar:nth-child(5) { animation: wave4 0.85s ease-in-out infinite 0.2s; }
+.wave-bar:nth-child(6) { animation: wave3 0.7s ease-in-out infinite 0.1s; }
+.wave-bar:nth-child(7) { animation: wave1 0.9s ease-in-out infinite 0.25s; }
+.wave-bar:nth-child(8) { animation: wave5 0.8s ease-in-out infinite 0.05s; }
+.wave-bar:nth-child(9) { animation: wave2 0.75s ease-in-out infinite 0.3s; }
+.wave-bar:nth-child(10){ animation: wave4 0.85s ease-in-out infinite 0.15s; }
+
+.wave-bars-paused .wave-bar { animation-play-state: paused; height: 6px !important; opacity: 0.3; }
+
+/* ── Fade-up scroll reveal ── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.reveal { opacity: 0; }
+.reveal.visible { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ── Hotkey pulse ring ── */
+@keyframes ring {
+  0%   { box-shadow: 0 0 0 0 rgba(14,165,233,0.4); }
+  70%  { box-shadow: 0 0 0 8px rgba(14,165,233,0); }
+  100% { box-shadow: 0 0 0 0 rgba(14,165,233,0); }
+}
+.ring-pulse { animation: ring 2s ease-out infinite; }
+
+/* ── FAQ chevron ── */
+details summary svg { transition: transform 0.2s ease; }
+details[open] summary svg { transform: rotate(180deg); }
+
+/* ── Gradient divider ── */
+.grad-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(14,165,233,0.3) 50%, transparent);
 }
 
-.fade-up {
-  animation: fadeUp 0.5s ease-out both;
+/* ── Shimmer on CTA button ── */
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
 }
-
-/* Pulse glow for the hotkey badge */
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4); }
-  50%       { box-shadow: 0 0 0 8px rgba(13, 148, 136, 0); }
-}
-
-.hotkey-badge {
-  animation: pulse-glow 2.5s ease-in-out infinite;
-}
-
-/* Typing cursor blink */
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-
-.cursor-blink::after {
-  content: "▊";
-  animation: blink 1s step-end infinite;
-  color: #0d9488;
-  margin-left: 2px;
-}
-
-/* FAQ accordion chevron */
-details summary svg {
-  transition: transform 0.2s ease;
-}
-details[open] summary svg {
-  transform: rotate(180deg);
+.btn-shimmer {
+  background: linear-gradient(135deg, #0ea5e9, #06d6a0, #0ea5e9);
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
 }
