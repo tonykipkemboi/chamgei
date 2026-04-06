@@ -643,10 +643,10 @@ impl SttEngine for DeepgramEngine {
             .client
             .post("https://api.deepgram.com/v1/listen")
             .query(&[
-                ("model",        self.model.as_str()),
-                ("language",     "en"),
+                ("model", self.model.as_str()),
+                ("language", "en"),
                 ("smart_format", "true"),
-                ("punctuate",    "true"),
+                ("punctuate", "true"),
             ])
             .header("Authorization", format!("Token {}", self.api_key))
             .header("Content-Type", "audio/wav")
