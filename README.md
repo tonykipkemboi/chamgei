@@ -1,6 +1,10 @@
-# Chamgei
+<p align="center">
+  <img src="website/public/icon.png" alt="chamgei logo" width="96" />
+</p>
 
-**/tʃɑːm.ɡeɪ/** — a Kalenjin greeting meaning "How are you?"
+<h1 align="center">chamgei</h1>
+
+<p align="center"><strong>/tʃɑːm.ɡeɪ/</strong> — a Kalenjin greeting meaning "How are you?"</p>
 
 > Kalenjin is a community from the highlands of Kenya. *Chamgei* is how you say hello — a word that opens conversation. We chose it because that's what this tool does: opens the conversation between your voice and your computer.
 
