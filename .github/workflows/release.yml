@@ -22,13 +22,17 @@ jobs:
         include:
           - runner: macos-14
             arch: aarch64
-          - runner: macos-13
+            target: aarch64-apple-darwin
+          - runner: macos-14
             arch: x86_64
+            target: x86_64-apple-darwin
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - name: Cache cargo registry and target
         uses: actions/cache@v4
@@ -42,7 +46,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.arch }}-cargo-release-
 
       - name: Build CLI binary
-        run: cargo build --release -p chamgei-core
+        run: cargo build --release -p chamgei-core --target ${{ matrix.target }}
 
       - name: Get version from tag
         id: version
@@ -52,7 +56,7 @@ jobs:
         run: |
           mkdir -p dist
           PKGDIR=$(mktemp -d)
-          cp target/release/chamgei "$PKGDIR/chamgei"
+          cp target/${{ matrix.target }}/release/chamgei "$PKGDIR/chamgei"
           tar -czf "dist/chamgei-${{ steps.version.outputs.version }}-macos-${{ matrix.arch }}.tar.gz" -C "$PKGDIR" .
           rm -rf "$PKGDIR"
 
