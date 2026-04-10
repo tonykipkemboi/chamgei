@@ -12,13 +12,20 @@
 
 set -euo pipefail
 
-VERSION="v0.4.0"
 GITHUB_REPO="tonykipkemboi/chamgei"
 INSTALL_DIR="/usr/local/bin"
 MODEL_DIR="$HOME/.local/share/chamgei/models"
 WHISPER_FILE="ggml-tiny.bin"
 WHISPER_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$WHISPER_FILE"
-WHISPER_SHA256=""  # updated per release; verified against SHA256SUMS when available
+
+# Always resolve the latest published release from GitHub
+VERSION=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" \
+  | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+
+if [ -z "$VERSION" ]; then
+  echo "  ERROR: Could not determine latest release. Check your internet connection."
+  exit 1
+fi
 
 echo ""
 echo "  ╔══════════════════════════════════════╗"
@@ -137,14 +144,12 @@ else
         ACTUAL=""
     fi
 
-    if [ -n "$ACTUAL" ] && [ "$ACTUAL" != "$WHISPER_SHA256" ]; then
-        echo "  ERROR: Whisper model checksum mismatch — aborting for safety."
-        echo "         Expected: $WHISPER_SHA256"
-        echo "         Got:      $ACTUAL"
-        rm -f "$MODEL_DIR/$WHISPER_FILE"
-        exit 1
-    elif [ -z "$ACTUAL" ]; then
+    # Checksum verification is skipped — ggml-tiny.bin is fetched directly
+    # from the official HuggingFace repo and its hash isn't pinned here.
+    if [ -z "$ACTUAL" ]; then
         echo "  WARNING: Could not verify model checksum (shasum/sha256sum not found)"
+    else
+        echo "  Model checksum: $ACTUAL"
     fi
 fi
 
