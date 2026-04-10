@@ -40,20 +40,15 @@ pub enum ActivationMode {
 }
 
 /// Which physical key combination triggers dictation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TriggerKey {
     /// ⌥Space — traditional default, works on all keyboards.
     /// Conflict risk: Raycast, Alfred frequently bind this combo.
+    #[default]
     OptionSpace,
     /// Fn/Globe key alone — recommended for Apple built-in keyboards.
     /// Requires System Settings → Keyboard → "Press 🌐 key to" → "Do Nothing".
     FnKey,
-}
-
-impl Default for TriggerKey {
-    fn default() -> Self {
-        Self::OptionSpace
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -253,7 +248,7 @@ mod platform {
     /// some Apple hardware — must be filtered out to avoid false Fn triggers.
     #[inline]
     fn is_arrow_key(keycode: i64) -> bool {
-        keycode >= KC_ARROW_LEFT && keycode <= KC_ARROW_DOWN
+        (KC_ARROW_LEFT..=KC_ARROW_DOWN).contains(&keycode)
     }
 
     // ── TapContext ────────────────────────────────────────────────────────────
@@ -761,8 +756,11 @@ pub fn request_accessibility_permission() -> bool {
     const K_CF_STRING_ENCODING_UTF8: u32 = 0x0800_0100;
 
     unsafe {
-        let key_cstr = b"AXTrustedCheckOptionPrompt\0".as_ptr() as *const c_char;
-        let key = CFStringCreateWithCString(std::ptr::null(), key_cstr, K_CF_STRING_ENCODING_UTF8);
+        let key = CFStringCreateWithCString(
+            std::ptr::null(),
+            c"AXTrustedCheckOptionPrompt".as_ptr(),
+            K_CF_STRING_ENCODING_UTF8,
+        );
         if key.is_null() {
             return is_accessibility_trusted();
         }
@@ -772,8 +770,8 @@ pub fn request_accessibility_permission() -> bool {
 
         let options = CFDictionaryCreate(
             std::ptr::null(),
-            keys.as_ptr() as *const *const c_void,
-            values.as_ptr() as *const *const c_void,
+            keys.as_ptr(),
+            values.as_ptr(),
             1,
             &kCFTypeDictionaryKeyCallBacks as *const c_void,
             &kCFTypeDictionaryValueCallBacks as *const c_void,
