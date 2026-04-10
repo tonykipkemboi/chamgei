@@ -993,7 +993,7 @@ async fn cmd_update(check_only: bool) -> Result<()> {
         }
     };
     let arch_name = match arch {
-        "aarch64" => "arm64",
+        "aarch64" => "aarch64",
         "x86_64" => "x86_64",
         other => {
             println!("  {} Unsupported arch: {}", style("✗").red(), other);
@@ -1001,16 +1001,26 @@ async fn cmd_update(check_only: bool) -> Result<()> {
         }
     };
 
-    let tarball = format!("chamgei-v{latest_tag}-{platform}-{arch_name}.tar.gz");
+    let tarball = format!("chamgei-{latest_tag}-{platform}-{arch_name}.tar.gz");
     let download_url =
         format!("https://github.com/{REPO}/releases/download/v{latest_tag}/{tarball}");
 
     println!("  Downloading {}…", style(&tarball).dim());
 
-    let bytes = client.get(&download_url).send().await?.bytes().await?;
-    if bytes.is_empty() {
+    let resp = client.get(&download_url).send().await?;
+    if !resp.status().is_success() {
         println!(
-            "  {} Download failed — try: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash",
+            "  {} Download failed (HTTP {}) — try: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash",
+            style("✗").red(),
+            resp.status()
+        );
+        return Ok(());
+    }
+    let bytes = resp.bytes().await?;
+    // gzip magic bytes: 1f 8b
+    if bytes.len() < 2 || bytes[0] != 0x1f || bytes[1] != 0x8b {
+        println!(
+            "  {} Download did not return a valid gzip archive — try: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash",
             style("✗").red()
         );
         return Ok(());
