@@ -175,8 +175,7 @@ mod platform {
         user_info: *mut c_void,
     ) -> *mut c_void;
 
-    type CFRunLoopTimerCallBack =
-        unsafe extern "C" fn(timer: *mut c_void, info: *mut c_void);
+    type CFRunLoopTimerCallBack = unsafe extern "C" fn(timer: *mut c_void, info: *mut c_void);
 
     /// CFRunLoopTimerContext — matches the C struct layout exactly.
     #[repr(C)]
@@ -222,10 +221,10 @@ mod platform {
         // ── CFRunLoopTimer ────────────────────────────────────────────────────
         fn CFRunLoopTimerCreate(
             allocator: *const c_void,
-            fire_date: f64,      // CFAbsoluteTime
-            interval: f64,       // CFTimeInterval
-            flags: u32,          // CFOptionFlags
-            order: i64,          // CFIndex
+            fire_date: f64, // CFAbsoluteTime
+            interval: f64,  // CFTimeInterval
+            flags: u32,     // CFOptionFlags
+            order: i64,     // CFIndex
             callback: CFRunLoopTimerCallBack,
             context: *mut CFRunLoopTimerContext,
         ) -> *mut c_void; // CFRunLoopTimerRef
@@ -294,10 +293,7 @@ mod platform {
     /// If the tap was silently disabled (e.g. heavy load caused a timeout that
     /// the disabled-event callback missed), this re-enables it before the user
     /// notices the hotkey stopped responding.
-    unsafe extern "C" fn tap_health_timer_callback(
-        _timer: *mut c_void,
-        user_info: *mut c_void,
-    ) {
+    unsafe extern "C" fn tap_health_timer_callback(_timer: *mut c_void, user_info: *mut c_void) {
         let ctx = unsafe { &*(user_info as *const TapContext) };
         let tap = ctx.tap.load(Ordering::Acquire);
         if tap.is_null() {
@@ -641,8 +637,7 @@ mod platform {
                 // Publish the tap pointer so callbacks can reference it.
                 ctx.tap.store(tap, Ordering::Release);
 
-                let source =
-                    unsafe { CFMachPortCreateRunLoopSource(std::ptr::null(), tap, 0) };
+                let source = unsafe { CFMachPortCreateRunLoopSource(std::ptr::null(), tap, 0) };
                 if source.is_null() {
                     tracing::error!("CFMachPortCreateRunLoopSource returned null");
                     return;
@@ -668,7 +663,7 @@ mod platform {
                     CFRunLoopTimerCreate(
                         std::ptr::null(),
                         fire_date,
-                        5.0,  // repeat every 5 seconds
+                        5.0, // repeat every 5 seconds
                         0,
                         0,
                         tap_health_timer_callback,
@@ -679,11 +674,7 @@ mod platform {
                     tracing::warn!("failed to create tap health watchdog timer");
                 } else {
                     unsafe {
-                        CFRunLoopAddTimer(
-                            CFRunLoopGetCurrent(),
-                            timer,
-                            kCFRunLoopCommonModes,
-                        );
+                        CFRunLoopAddTimer(CFRunLoopGetCurrent(), timer, kCFRunLoopCommonModes);
                     }
                     tracing::info!("tap health watchdog scheduled (5 s interval)");
                 }
@@ -695,9 +686,7 @@ mod platform {
                          is set to \"Do Nothing\"."
                     );
                 } else {
-                    tracing::info!(
-                        "CGEventTap registered — hold ⌥Space to dictate"
-                    );
+                    tracing::info!("CGEventTap registered — hold ⌥Space to dictate");
                 }
 
                 unsafe { CFRunLoopRun() };
@@ -773,8 +762,7 @@ pub fn request_accessibility_permission() -> bool {
 
     unsafe {
         let key_cstr = b"AXTrustedCheckOptionPrompt\0".as_ptr() as *const c_char;
-        let key =
-            CFStringCreateWithCString(std::ptr::null(), key_cstr, K_CF_STRING_ENCODING_UTF8);
+        let key = CFStringCreateWithCString(std::ptr::null(), key_cstr, K_CF_STRING_ENCODING_UTF8);
         if key.is_null() {
             return is_accessibility_trusted();
         }

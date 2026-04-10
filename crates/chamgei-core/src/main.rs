@@ -138,7 +138,6 @@ fn print_ascii_banner() {
     eprintln!("\x1b[38;2;0;210;190mvoice dictation for everyone\x1b[0m\n");
 }
 
-
 // ── Entry point ─────────────────────────────────────────────────────────────
 
 #[tokio::main]
@@ -937,7 +936,10 @@ async fn cmd_update(check_only: bool) -> Result<()> {
 
     if latest_tag == CURRENT {
         println!();
-        println!("  {} You're already on the latest version.", style("✓").green());
+        println!(
+            "  {} You're already on the latest version.",
+            style("✓").green()
+        );
         println!();
         return Ok(());
     }
@@ -945,17 +947,29 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     // Simple semver comparison (major.minor.patch)
     fn parse_ver(s: &str) -> (u64, u64, u64) {
         let mut parts = s.splitn(3, '.').map(|p| p.parse::<u64>().unwrap_or(0));
-        (parts.next().unwrap_or(0), parts.next().unwrap_or(0), parts.next().unwrap_or(0))
+        (
+            parts.next().unwrap_or(0),
+            parts.next().unwrap_or(0),
+            parts.next().unwrap_or(0),
+        )
     }
 
     if parse_ver(latest_tag) <= parse_ver(CURRENT) {
         println!();
-        println!("  {} You're already on the latest version.", style("✓").green());
+        println!(
+            "  {} You're already on the latest version.",
+            style("✓").green()
+        );
         println!();
         return Ok(());
     }
 
-    println!("  {} v{} → v{}", style("Update available:").yellow().bold(), CURRENT, latest_tag);
+    println!(
+        "  {} v{} → v{}",
+        style("Update available:").yellow().bold(),
+        CURRENT,
+        latest_tag
+    );
 
     if check_only {
         println!();
@@ -980,7 +994,7 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     };
     let arch_name = match arch {
         "aarch64" => "arm64",
-        "x86_64"  => "x86_64",
+        "x86_64" => "x86_64",
         other => {
             println!("  {} Unsupported arch: {}", style("✗").red(), other);
             return Ok(());
@@ -988,15 +1002,17 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     };
 
     let tarball = format!("chamgei-v{latest_tag}-{platform}-{arch_name}.tar.gz");
-    let download_url = format!(
-        "https://github.com/{REPO}/releases/download/v{latest_tag}/{tarball}"
-    );
+    let download_url =
+        format!("https://github.com/{REPO}/releases/download/v{latest_tag}/{tarball}");
 
     println!("  Downloading {}…", style(&tarball).dim());
 
     let bytes = client.get(&download_url).send().await?.bytes().await?;
     if bytes.is_empty() {
-        println!("  {} Download failed — try: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash", style("✗").red());
+        println!(
+            "  {} Download failed — try: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash",
+            style("✗").red()
+        );
         return Ok(());
     }
 
@@ -1007,7 +1023,12 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     std::fs::write(&tarball_path, &bytes)?;
 
     let status = std::process::Command::new("tar")
-        .args(["-xzf", tarball_path.to_str().unwrap(), "-C", tmp.to_str().unwrap()])
+        .args([
+            "-xzf",
+            tarball_path.to_str().unwrap(),
+            "-C",
+            tmp.to_str().unwrap(),
+        ])
         .status()?;
 
     if !status.success() {
@@ -1022,10 +1043,18 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     let copy_ok = std::fs::copy(&new_bin, &install_path).is_ok();
     if !copy_ok {
         let sudo = std::process::Command::new("sudo")
-            .args(["cp", new_bin.to_str().unwrap(), install_path.to_str().unwrap()])
+            .args([
+                "cp",
+                new_bin.to_str().unwrap(),
+                install_path.to_str().unwrap(),
+            ])
             .status()?;
         if !sudo.success() {
-            println!("  {} Could not write to {}. Try running with sudo.", style("✗").red(), install_path.display());
+            println!(
+                "  {} Could not write to {}. Try running with sudo.",
+                style("✗").red(),
+                install_path.display()
+            );
             return Ok(());
         }
     }

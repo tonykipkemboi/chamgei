@@ -471,7 +471,8 @@ impl SttEngine for GroqWhisperEngine {
         let wav_data = encode_wav(samples);
 
         // Build the multipart body (language=None → Groq auto-detects)
-        let (content_type, body) = build_multipart_body(&wav_data, &self.model, self.language.as_deref());
+        let (content_type, body) =
+            build_multipart_body(&wav_data, &self.model, self.language.as_deref());
 
         // Send to Groq API
         let response = self

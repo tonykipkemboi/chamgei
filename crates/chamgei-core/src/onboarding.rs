@@ -413,10 +413,7 @@ pub fn run_onboarding() -> Result<()> {
 
     // --- Step 3b: Hotkey selection ---------------------------------------
     println!();
-    println!(
-        "  {}",
-        console::style("Hotkey").bold()
-    );
+    println!("  {}", console::style("Hotkey").bold());
 
     let trigger_key: &str = select("Choose your dictation trigger key")
         .item(
