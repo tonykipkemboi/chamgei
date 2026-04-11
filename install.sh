@@ -136,6 +136,8 @@ else
     sudo cp "$TMPDIR/chamgei" "$INSTALL_DIR/chamgei"
 fi
 chmod +x "$INSTALL_DIR/chamgei"
+# Remove macOS quarantine attribute so Gatekeeper does not block the unsigned binary
+xattr -d com.apple.quarantine "$INSTALL_DIR/chamgei" 2>/dev/null || true
 
 # --- Download Whisper model ---
 echo "  [3/3] Downloading Whisper model (tiny, ~75 MB)..."
