@@ -77,9 +77,18 @@ const pipeline = [
     <!-- Flow -->
     <div class="relative px-6 sm:px-8 pb-8">
       <div class="relative overflow-x-auto scrollbar-none">
-        <!-- Scramble stream: text flows left→right across the pipeline, resolves to a sentence -->
-        <div class="hidden sm:flex absolute left-8 right-8 top-[26px] items-center justify-center overflow-hidden h-[16px] pointer-events-none" aria-hidden="true">
-          <span id="pipeline-scramble" class="font-mono whitespace-pre" style="font-size:10px; letter-spacing:0.14em; color:rgba(32,128,141,0.9); text-shadow:0 0 12px rgba(32,128,141,0.35);"></span>
+        <!-- Traveling payload: morphs form as it moves left→right across the 5 stages -->
+        <div class="hidden sm:block absolute left-0 right-0 top-[20px] h-[28px] pointer-events-none" aria-hidden="true">
+          <div class="relative min-w-[640px] h-full">
+            <!-- Rail -->
+            <div class="absolute left-[10%] right-[10%] top-1/2 -translate-y-1/2 h-px" style="background:linear-gradient(90deg, transparent, rgba(32,128,141,0.35) 15%, rgba(32,128,141,0.35) 85%, transparent);"></div>
+            <!-- Payload -->
+            <div
+              id="pipeline-payload"
+              class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center h-[24px] px-2 rounded"
+              style="left:10%; min-width:44px; background:rgba(32,128,141,0.14); border:1px solid rgba(32,128,141,0.35); box-shadow:0 0 18px -4px rgba(32,128,141,0.5); transition:left 0.6s cubic-bezier(0.65,0,0.35,1), min-width 0.6s cubic-bezier(0.65,0,0.35,1), opacity 0.3s ease-out;"
+            ></div>
+          </div>
         </div>
 
         <div class="relative grid grid-cols-5 min-w-[640px] gap-2">
@@ -143,8 +152,25 @@ const pipeline = [
   </div>
 </section>
 
+<style>
+  @keyframes p-bar-wave {
+    0%, 100% { transform: scaleY(0.3); }
+    50%      { transform: scaleY(1); }
+  }
+  .p-bar {
+    display: inline-block;
+    width: 2px;
+    height: 14px;
+    margin: 0 1px;
+    background: var(--color-teal);
+    border-radius: 1px;
+    transform-origin: center;
+    animation: p-bar-wave 0.9s ease-in-out infinite;
+  }
+</style>
+
 <script>
-  const el = document.getElementById('pipeline-scramble');
+  const payload = document.getElementById('pipeline-payload') as HTMLElement | null;
   const target = "move thursday's stand-up to 10.";
   const pool  = "!<>-_/=+*#@01·•→Xo?";
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -153,33 +179,95 @@ const pipeline = [
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  function run() {
-    if (!el) return;
-    if (reduce) { el.textContent = target; return; }
-
-    let tick = 0;
-    const charDuration = 14;
-    const stagger = 2;
-    const holdFrames = 40;
-    const timer = window.setInterval(() => {
-      tick++;
-      let out = '';
-      for (let i = 0; i < target.length; i++) {
-        const start = i * stagger;
-        const end = start + charDuration;
-        const ch = target[i];
-        if (ch === ' ') { out += ' '; continue; }
-        if (tick < start)      out += ' ';
-        else if (tick < end)   out += randChar();
-        else                    out += ch;
-      }
-      el.textContent = out;
-      if (tick > target.length * stagger + charDuration + holdFrames) {
-        window.clearInterval(timer);
-        window.setTimeout(run, 400);
-      }
-    }, 45);
+  function bars(count: number, spread = 1) {
+    let html = '';
+    for (let i = 0; i < count; i++) {
+      const delay = (i * 0.07 * spread).toFixed(2);
+      const h = 5 + Math.round(Math.random() * 9);
+      html += `<span class="p-bar" style="animation-delay:${delay}s; height:${h}px;"></span>`;
+    }
+    return `<span class="flex items-center h-full">${html}</span>`;
   }
 
-  run();
+  function textSpan(text: string, opts: { mono?: boolean; size?: number; color?: string } = {}) {
+    const { mono = true, size = 10, color = 'rgba(32,128,141,0.95)' } = opts;
+    const family = mono ? 'font-mono' : '';
+    return `<span class="${family} whitespace-nowrap" style="font-size:${size}px; letter-spacing:0.1em; color:${color}; text-shadow:0 0 10px rgba(32,128,141,0.35);">${text}</span>`;
+  }
+
+  function setPayload(left: string, minWidth: string, html: string) {
+    if (!payload) return;
+    payload.style.left = left;
+    payload.style.minWidth = minWidth;
+    payload.innerHTML = html;
+  }
+
+  let scrambleTimer: number | null = null;
+  function clearScramble() {
+    if (scrambleTimer !== null) { window.clearInterval(scrambleTimer); scrambleTimer = null; }
+  }
+
+  async function sleep(ms: number) { return new Promise(r => window.setTimeout(r, ms)); }
+
+  async function runLoop() {
+    if (!payload) return;
+    if (reduce) {
+      setPayload('50%', '220px', textSpan(target, { mono: false, size: 11, color: 'var(--color-teal)' }));
+      return;
+    }
+
+    while (true) {
+      // Stage 1 — Capture: live waveform
+      clearScramble();
+      setPayload('10%', '56px', bars(10, 1));
+      await sleep(1100);
+
+      // Stage 2 — Trim: tighter waveform, fewer bars
+      setPayload('30%', '42px', bars(6, 0.8));
+      await sleep(850);
+
+      // Stage 3 — Transcribe: scramble forming
+      setPayload('50%', '140px', textSpan('—'.repeat(14)));
+      await sleep(120);
+      let tick = 0;
+      const scrambleDur = 900;
+      const scrambleStart = performance.now();
+      await new Promise<void>((resolve) => {
+        scrambleTimer = window.setInterval(() => {
+          const elapsed = performance.now() - scrambleStart;
+          const progress = Math.min(1, elapsed / scrambleDur);
+          const revealed = Math.floor(progress * target.length);
+          let out = '';
+          for (let i = 0; i < target.length; i++) {
+            const ch = target[i];
+            if (ch === ' ') { out += ' '; continue; }
+            out += i < revealed ? ch : randChar();
+          }
+          if (payload) {
+            payload.innerHTML = textSpan(out);
+          }
+          tick++;
+          if (progress >= 1) {
+            clearScramble();
+            resolve();
+          }
+        }, 55);
+      });
+
+      // Stage 4 — Format: clean partial
+      setPayload('70%', '180px', textSpan("move thursday's stand-up…", { mono: false, size: 11, color: 'var(--color-teal)' }));
+      await sleep(750);
+
+      // Stage 5 — Paste: final sentence lands
+      setPayload('90%', '230px', textSpan(target, { mono: false, size: 11, color: 'var(--color-teal)' }));
+      await sleep(1500);
+
+      // Brief fade before restart
+      if (payload) payload.style.opacity = '0';
+      await sleep(350);
+      if (payload) payload.style.opacity = '1';
+    }
+  }
+
+  runLoop();
 </script>
