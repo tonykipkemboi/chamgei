@@ -1,4 +1,6 @@
 ---
+import Mark from './Mark.astro';
+
 const cols = [
   {
     title: 'Product',
@@ -37,11 +39,7 @@ const cols = [
       <!-- Brand column -->
       <div>
         <div class="flex items-center gap-2.5 mb-4">
-          <span
-            class="flex items-center justify-center w-7 h-7 rounded-md"
-            style="background:var(--color-ink); color:var(--color-cream); font-family:var(--font-serif); font-weight:500; font-size:15px; line-height:1;"
-            aria-hidden="true"
-          >r</span>
+          <Mark size={28} strokeColor="var(--color-ink)" />
           <span style="font-family:var(--font-serif); font-size:20px; color:var(--color-ink);">rekody</span>
           <span class="text-[10px] font-mono px-1.5 py-0.5 rounded" style="background:var(--color-teal-soft); color:var(--color-teal); letter-spacing:0.02em;">v0.4.3</span>
         </div>

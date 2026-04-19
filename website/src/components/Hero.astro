@@ -1,4 +1,5 @@
 ---
+import Mark from './Mark.astro';
 ---
 
 <section id="hero" class="relative shader-hero overflow-hidden">
@@ -85,7 +86,10 @@
           <span class="w-2.5 h-2.5 rounded-full" style="background:#F4C3B8;"></span>
           <span class="w-2.5 h-2.5 rounded-full" style="background:#F4E4B8;"></span>
           <span class="w-2.5 h-2.5 rounded-full" style="background:#C8E0C8;"></span>
-          <span class="ml-auto text-[10px] font-mono uppercase" style="color:var(--color-ink-faint); letter-spacing:0.08em;">Demo</span>
+          <div class="ml-auto flex items-center gap-1.5">
+            <Mark size={14} hideDot strokeColor="var(--color-ink-faint)" strokeWidth={26} />
+            <span class="text-[10px] font-mono uppercase" style="color:var(--color-ink-faint); letter-spacing:0.08em;">rekody</span>
+          </div>
         </div>
 
         <!-- Body -->
@@ -101,7 +105,10 @@
                 <span class="wave-bar" style="height:100%;"></span>
               ))}
             </div>
-            <span class="ml-auto text-[11px] font-mono uppercase" style="color:var(--color-teal); letter-spacing:0.08em;">Listening</span>
+            <div class="ml-auto flex items-center gap-2">
+              <Mark size={18} animate strokeColor="var(--color-ink)" dotColor="var(--color-teal)" ariaLabel="Listening" />
+              <span class="text-[11px] font-mono uppercase" style="color:var(--color-teal); letter-spacing:0.08em;">Listening</span>
+            </div>
           </div>
 
           <!-- Transcript -->
