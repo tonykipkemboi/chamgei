@@ -446,25 +446,27 @@ mod platform {
             }
 
             // ── Key up ────────────────────────────────────────────────────────
-            K_CGEVENT_KEY_UP if ctx.trigger_key == TriggerKey::OptionSpace => {
-                // Space released — stop recording. Suppress the key-up so
-                // no stray character reaches the focused app.
-                if keycode == KC_SPACE && (state.trigger_held || state.is_recording) {
-                    tracing::trace!(
-                        trigger_held = state.trigger_held,
-                        is_recording = state.is_recording,
-                        "KeyUp Space"
-                    );
-                    state.trigger_held = false;
+            // Space released — stop recording. Suppress the key-up so no stray
+            // character reaches the focused app.
+            K_CGEVENT_KEY_UP
+                if ctx.trigger_key == TriggerKey::OptionSpace
+                    && keycode == KC_SPACE
+                    && (state.trigger_held || state.is_recording) =>
+            {
+                tracing::trace!(
+                    trigger_held = state.trigger_held,
+                    is_recording = state.is_recording,
+                    "KeyUp Space"
+                );
+                state.trigger_held = false;
 
-                    if ctx.mode == ActivationMode::PushToTalk && state.is_recording {
-                        state.stop_recording();
-                        tracing::debug!("push-to-talk: RecordStop (Space released)");
-                        drop(state);
-                        unsafe { send_event(ctx, HotkeyEvent::RecordStop) };
-                    }
-                    return std::ptr::null_mut();
+                if ctx.mode == ActivationMode::PushToTalk && state.is_recording {
+                    state.stop_recording();
+                    tracing::debug!("push-to-talk: RecordStop (Space released)");
+                    drop(state);
+                    unsafe { send_event(ctx, HotkeyEvent::RecordStop) };
                 }
+                return std::ptr::null_mut();
             }
 
             // ── Flags changed ─────────────────────────────────────────────────
