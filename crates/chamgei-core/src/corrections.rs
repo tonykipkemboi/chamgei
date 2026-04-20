@@ -205,7 +205,7 @@ impl CorrectionPatterns {
             })
             .collect();
 
-        patterns.sort_by(|a, b| b.frequency.cmp(&a.frequency));
+        patterns.sort_by_key(|p| std::cmp::Reverse(p.frequency));
         patterns
     }
 }
