@@ -114,7 +114,7 @@ import Mark from './Mark.astro';
           <!-- Transcript -->
           <div class="rounded-xl p-4 mb-4" style="background:#FBFAF4; border:1px solid var(--color-hairline-soft);">
             <p class="body-serif" style="font-size:17px; color:var(--color-ink); line-height:1.55;">
-              Move Thursday's stand-up to 10, ping design about the launch ticket, and remind me to book the <em class="hero-polish" aria-label="flight home"><span class="hero-polish-ghost" aria-hidden="true">flight home</span><span class="hero-polish-live" aria-hidden="true"><span id="hero-polish-text"></span><span id="hero-polish-caret" class="hero-caret">|</span></span></em>.
+              Move Thursday's stand-up to 10, ping design about the launch ticket, and remind me to book the <em class="hero-polish" aria-label="flight home."><span class="hero-polish-ghost" aria-hidden="true">flight home.</span><span class="hero-polish-live" aria-hidden="true"><span id="hero-polish-text"></span><span id="hero-polish-caret" class="hero-caret">|</span></span></em>
             </p>
           </div>
 
@@ -174,7 +174,7 @@ import Mark from './Mark.astro';
   // Transcription typing loop: type out the teal "flight home" tail, hold, clear, repeat.
   const polishText  = document.getElementById('hero-polish-text');
   const polishCaret = document.getElementById('hero-polish-caret');
-  const PHRASE = 'flight home';
+  const PHRASE = 'flight home.';
   const TYPE_MS  = 90;   // per character
   const HOLD_MS  = 2600; // pause after full phrase
   const CLEAR_MS = 650;  // pause before next loop
