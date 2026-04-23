@@ -121,7 +121,7 @@ jobs:
         id: sums
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          SUMS=$(curl -fsSL "https://github.com/tonykipkemboi/rekody/releases/download/v${VERSION}/SHA256SUMS")
+          SUMS=$(curl -fsSL "https://github.com/rekody/rekody/releases/download/v${VERSION}/SHA256SUMS")
           SHA_AARCH64=$(echo "$SUMS" | grep "macos-aarch64" | awk '{print $1}')
           SHA_X86_64=$(echo  "$SUMS" | grep "macos-x86_64"  | awk '{print $1}')
           echo "sha_aarch64=$SHA_AARCH64" >> "$GITHUB_OUTPUT"
@@ -130,7 +130,7 @@ jobs:
       - name: Checkout homebrew tap
         uses: actions/checkout@v4
         with:
-          repository: tonykipkemboi/homebrew-rekody
+          repository: rekody/homebrew-rekody
           token: ${{ secrets.PAT_HOMEBREW }}
           path: tap
 

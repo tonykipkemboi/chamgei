@@ -1,0 +1,283 @@
+---
+// Use cases by field/profession. Each card shows a real dictation in that
+// register so the breadth of the product is legible at a glance.
+// Order is intentional: dev + writer + student lead because they're the
+// broadest audiences; specialized fields (clinical, legal, research) show
+// depth without defining the product.
+
+type UseCase = {
+  eyebrow: string;
+  title: string;
+  kicker: string;
+  sample: string;
+  terms: string[]; // example dictionary entries
+  snippets?: string[]; // example snippet triggers
+};
+
+const cases: UseCase[] = [
+  {
+    eyebrow: 'Developers & engineers',
+    title: 'PR descriptions, commit messages, tickets.',
+    kicker: 'Stop context-switching between keyboard and code review.',
+    sample: 'Fix the race in the subscription refresh — the JWT was stale when the window regained focus. Added a mutex around the refresh task and a regression test in entitlements.rs.',
+    terms: ['JWT', 'mutex', 'entitlements.rs', 'regression'],
+    snippets: ['/pr', '/ticket', '/todo'],
+  },
+  {
+    eyebrow: 'Writers & journalists',
+    title: 'Drafts, interview notes, story pitches.',
+    kicker: 'Keep the cadence in your head instead of breaking it to type.',
+    sample: 'Open with the scene at the docks — the unloading crew, the cold, the rumor about the missing manifest. Save the policy angle for the third beat.',
+    terms: ['lede', 'nut graf', 'on background'],
+    snippets: ['/lede', '/kicker'],
+  },
+  {
+    eyebrow: 'Students',
+    title: 'Lecture notes, essays, study guides.',
+    kicker: 'Capture the professor\'s aside before it\'s gone.',
+    sample: 'For Thursday: the Krebs cycle yields two ATP per glucose; the electron transport chain yields thirty-two. Midterm focus is on the regulation steps, not the intermediates.',
+    terms: ['Krebs', 'ATP', 'phosphorylation', 'gluconeogenesis'],
+    snippets: ['/cite', '/def'],
+  },
+  {
+    eyebrow: 'Founders & operators',
+    title: 'Investor updates, hiring loops, board prep.',
+    kicker: 'Turn a twenty-minute walk into the April update.',
+    sample: 'Send the April update — MRR is forty-two thousand, churn held at one-point-eight, we closed two partnership conversations. Ask Susan about bridge timing before Friday.',
+    terms: ['MRR', 'ARR', 'NDR', 'burn', 'runway'],
+    snippets: ['/update', '/intro'],
+  },
+  {
+    eyebrow: 'Designers & PMs',
+    title: 'Specs, critique notes, research synthesis.',
+    kicker: 'Narrate a design review in the Figma comment thread.',
+    sample: 'Move the nav hit target from thirty-two to forty-four — the tap-miss rate on Android phones was eleven percent in last week\'s session five.',
+    terms: ['hit target', 'affordance', 'Jobs-to-be-Done', 'north-star metric'],
+    snippets: ['/crit', '/spec'],
+  },
+  {
+    eyebrow: 'Researchers & academics',
+    title: 'Paper drafts, seminar notes, review responses.',
+    kicker: 'Dictate the response to Reviewer 2 while the irritation is fresh.',
+    sample: 'Reviewer 2 misreads our ablation — the 0.81 BLEU score is without the auxiliary loss, not with. Point to Table 3 and the caption; reorder the paragraph so the claim leads.',
+    terms: ['BLEU', 'ablation', 'hyperparameter', 'eigenvector', 'p-value'],
+    snippets: ['/fig', '/cite'],
+  },
+  {
+    eyebrow: 'Lawyers',
+    title: 'Memos, briefs, deposition summaries.',
+    kicker: 'Draft the motion in the hallway between hearings.',
+    sample: 'Draft the motion to compel — defendant has not produced the Q3 emails despite our June fourteenth request. Cite Rule 37(a) and attach the meet-and-confer log.',
+    terms: ['motion to compel', 'Rule 37', 'privilege log', 'voir dire'],
+    snippets: ['/memo', '/cite', '/sig'],
+  },
+  {
+    eyebrow: 'Healthcare',
+    title: 'Chart notes, tumor-board asides, patient emails.',
+    kicker: 'Speak the medicine; let the computer type it.',
+    sample: 'Flag the TP53 variant for tumor board — classified as likely pathogenic per ACMG. Start the patient on the pharmacogenomic workup before the Thursday call.',
+    terms: ['TP53', 'BRCA1', 'ACMG', 'ClinVar', 'pharmacogenomic', 'VUS'],
+    snippets: ['/soap', '/followup', '/sig'],
+  },
+  {
+    eyebrow: 'Everyday',
+    title: 'Messages, email, journaling, to-dos.',
+    kicker: 'The stuff you\'d rather not type — especially on Monday.',
+    sample: 'Remind me Thursday to pick up Amina\'s passport before the embassy closes at four. Text Dad that we\'ll drive up on the second of May, not the first.',
+    terms: ['(your friends)', '(your streets)', '(your slang)'],
+    snippets: ['/addr', '/ty'],
+  },
+];
+---
+
+<section id="use-cases" class="relative py-24" style="background:var(--color-cream);">
+  <div class="max-w-6xl mx-auto px-6">
+
+    <!-- Heading -->
+    <div class="mb-16 max-w-2xl">
+      <p class="text-[11px] font-mono uppercase mb-4" style="color:var(--color-ink-faint); letter-spacing:0.12em;">Use cases</p>
+      <h2 class="display mb-6" style="font-size:clamp(36px, 5vw, 56px);">
+        Whoever you are. <span class="display-italic" style="color:var(--color-teal);">Whatever</span> you write.
+      </h2>
+      <p class="body-serif max-w-xl" style="font-size:19px; line-height:1.55;">
+        rekody is a general-purpose dictation tool. It learns your vocabulary — <em>your</em> vocabulary, not a preset — so the words that matter in your work come out right. Here's what that looks like across a few fields.
+      </p>
+    </div>
+
+    <!-- Cards grid -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {cases.map(c => (
+        <article
+          class="relative rounded-2xl p-6 flex flex-col gap-4"
+          style="background:#FFFFFF; border:1px solid var(--color-hairline); box-shadow:0 12px 32px -20px rgba(15,23,23,0.12);"
+        >
+          <header>
+            <p class="text-[11px] font-mono uppercase mb-2" style="color:var(--color-teal); letter-spacing:0.12em;">{c.eyebrow}</p>
+            <h3 class="display" style="font-size:22px; line-height:1.2;">{c.title}</h3>
+          </header>
+
+          <p class="body-serif" style="font-size:14px; color:var(--color-ink-soft); line-height:1.55;">
+            {c.kicker}
+          </p>
+
+          <!-- Sample dictation -->
+          <div class="rounded-xl p-4 flex-1" style="background:#FBFAF4; border:1px solid var(--color-hairline-soft);">
+            <p class="text-[10px] font-mono uppercase mb-2" style="color:var(--color-ink-faint); letter-spacing:0.12em;">They dictate</p>
+            <p class="body-serif" style="font-size:14px; line-height:1.55; color:var(--color-ink);">
+              <span style="color:var(--color-teal); font-style:italic;">"</span>{c.sample}<span style="color:var(--color-teal); font-style:italic;">"</span>
+            </p>
+          </div>
+
+          <!-- Vocabulary + snippets -->
+          <div class="flex flex-col gap-2 mt-auto">
+            <div class="flex flex-wrap gap-1.5">
+              {c.terms.map(t => (
+                <span
+                  class="text-[10px] font-mono px-2 py-0.5 rounded"
+                  style="background:var(--color-teal-soft); color:var(--color-teal); letter-spacing:0.02em;"
+                >{t}</span>
+              ))}
+            </div>
+            {c.snippets && (
+              <div class="flex flex-wrap gap-1.5">
+                {c.snippets.map(s => (
+                  <span
+                    class="text-[10px] font-mono px-2 py-0.5 rounded"
+                    style="background:rgba(15,23,23,0.05); color:var(--color-ink-mute);"
+                  >{s}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] font-mono" style="color:var(--color-ink-faint);">
+      <span class="flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded" style="background:var(--color-teal-soft); border:1px solid var(--color-teal);"></span>
+        Dictionary entries — teach rekody your jargon
+      </span>
+      <span class="flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded" style="background:rgba(15,23,23,0.08);"></span>
+        Snippets — say <code style="color:var(--color-ink);">/sig</code>, get a paragraph
+      </span>
+    </div>
+  </div>
+
+  <!-- Accessibility callout -->
+  <div class="max-w-6xl mx-auto px-6 mt-24">
+    <article class="relative rounded-3xl overflow-hidden" style="background:var(--color-ink); border:1px solid rgba(251,250,244,0.08);">
+      <div class="grid md:grid-cols-[1.2fr_1fr] gap-10 items-center p-10 md:p-14">
+
+        <div>
+          <p class="text-[11px] font-mono uppercase mb-3" style="color:#6BC5D0; letter-spacing:0.12em;">Hands-free by design</p>
+          <h3 class="display mb-5" style="font-size:clamp(28px, 3.8vw, 44px); color:var(--color-cream); line-height:1.1;">
+            For the days the keyboard <span class="display-italic" style="color:#6BC5D0;">isn't</span> an option.
+          </h3>
+          <p class="body-serif max-w-xl" style="font-size:17px; line-height:1.55; color:rgba(251,250,244,0.75);">
+            If you live with RSI, carpal tunnel, limited mobility, a broken wrist, or simply a long recovery — voice isn't a novelty, it's how you work. rekody was built around a single held key so the trigger itself is as forgiving as possible. Push-to-talk, hands-free VAD, or toggle mode — pick what fits your hands today.
+          </p>
+          <ul class="mt-6 flex flex-col gap-2.5 text-[14px]" style="color:rgba(251,250,244,0.85);">
+            <li class="flex items-start gap-2.5">
+              <span style="color:#6BC5D0; font-family:var(--font-mono); margin-top:2px;">→</span>
+              <span>One held key — no chord, no double-tap, no drag</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span style="color:#6BC5D0; font-family:var(--font-mono); margin-top:2px;">→</span>
+              <span>Hands-free VAD mode for days typing isn't feasible</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span style="color:#6BC5D0; font-family:var(--font-mono); margin-top:2px;">→</span>
+              <span>Works with VoiceOver; text injects where your cursor already is</span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <span style="color:#6BC5D0; font-family:var(--font-mono); margin-top:2px;">→</span>
+              <span>Reassignable hotkey — rebind to the Globe key, Fn, or any chord your hand can reach</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Minimal, calm visual -->
+        <div class="flex items-center justify-center">
+          <div class="relative">
+            <div class="flex items-center gap-2">
+              <span class="key key-dark" style="font-size:18px; padding:12px 16px;">⌥</span>
+              <span class="key key-dark" style="font-size:18px; padding:12px 20px;">Space</span>
+            </div>
+            <p class="text-center mt-5 font-mono text-[11px] uppercase" style="color:rgba(251,250,244,0.45); letter-spacing:0.14em;">
+              Hold · speak · release
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <!-- Multilingual / global reminder -->
+  <div class="max-w-6xl mx-auto px-6 mt-24">
+    <div class="grid md:grid-cols-[1.2fr_1fr] gap-10 items-center">
+      <div>
+        <p class="text-[11px] font-mono uppercase mb-3" style="color:var(--color-teal); letter-spacing:0.12em;">And in your language</p>
+        <h3 class="display mb-5" style="font-size:clamp(28px, 3.8vw, 44px); line-height:1.1;">
+          Dictate in Swahili, Spanish, Mandarin. <span class="display-italic" style="color:var(--color-teal);">Switch mid-sentence.</span>
+        </h3>
+        <p class="body-serif max-w-xl" style="font-size:17px; line-height:1.55;">
+          Every profession above works in 100+ languages. A teacher in Nairobi dictating a lesson plan. A physio in São Paulo writing a referral. A lawyer in Tokyo drafting a brief. Auto-detect is on by default — if you slip a Swahili word into an English email, rekody hears you.
+        </p>
+        <p class="mt-4 body-serif italic" style="font-size:15px; color:var(--color-ink-mute);">
+          "Tuma message kwa Amina — tutaenda duka kesho saa tano."
+        </p>
+      </div>
+
+      <!-- Tiny rendered example -->
+      <div class="rounded-2xl p-6" style="background:#FFFFFF; border:1px solid var(--color-hairline);">
+        <p class="text-[10px] font-mono uppercase mb-4" style="color:var(--color-ink-faint); letter-spacing:0.12em;">Mid-sentence switch</p>
+        <p class="body-serif" style="font-size:17px; line-height:1.6;">
+          <span style="color:var(--color-ink-soft);">The experiment failed because the </span>
+          <span style="color:var(--color-teal); font-style:italic;">probabilité de convergence</span>
+          <span style="color:var(--color-ink-soft);"> was too low. Rerun with </span>
+          <span style="color:var(--color-teal); font-style:italic;">learning rate</span>
+          <span style="color:var(--color-ink-soft);"> at 0.001.</span>
+        </p>
+        <p class="mt-4 font-mono text-[11px]" style="color:var(--color-ink-faint);">
+          EN → FR → EN · auto-detect
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Closing CTA -->
+  <div class="max-w-6xl mx-auto px-6 mt-24 text-center">
+    <h3 class="display mb-4" style="font-size:clamp(28px, 4vw, 44px);">
+      Your vocabulary. Your voice. <span class="display-italic" style="color:var(--color-teal);">Your cursor.</span>
+    </h3>
+    <p class="body-serif max-w-xl mx-auto mb-8" style="font-size:17px;">
+      rekody doesn't care what you do for a living. It cares that the word you just said is the word that lands on the screen.
+    </p>
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <a
+        href="https://github.com/rekody/rekody/releases/latest"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="pill pill-dark"
+        style="padding:0.75rem 1.25rem; font-size:14px;"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download for Mac
+      </a>
+      <a
+        href="/#install"
+        class="pill pill-ghost"
+        style="padding:0.75rem 1.125rem; font-size:13px;"
+      >
+        See install options →
+      </a>
+    </div>
+  </div>
+</section>

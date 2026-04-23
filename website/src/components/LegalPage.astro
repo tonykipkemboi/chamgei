@@ -1,0 +1,162 @@
+---
+import Navbar from './Navbar.astro';
+import Footer from './Footer.astro';
+
+export interface TocEntry { id: string; label: string; }
+export interface Props {
+  eyebrow: string;
+  title: string;
+  updated: string;
+  summary?: string;
+  toc: TocEntry[];
+}
+
+const { eyebrow, title, updated, summary, toc } = Astro.props;
+---
+
+<Navbar />
+
+<main style="background:var(--color-cream);">
+  <div style="height:5rem;"></div>
+
+  <!-- Hero -->
+  <section class="pt-12 pb-10">
+    <div class="max-w-4xl mx-auto px-6">
+      <p class="text-[11px] font-mono uppercase mb-5" style="color:var(--color-teal); letter-spacing:0.16em;">— {eyebrow}</p>
+      <h1 class="display mb-4" style="font-size:clamp(40px, 5.4vw, 64px); line-height:1.04;">{title}</h1>
+      <p class="font-mono text-[12px]" style="color:var(--color-ink-faint);">Last updated · {updated}</p>
+      {summary && (
+        <div class="legal-summary mt-10 max-w-3xl pt-8 grid gap-x-8 gap-y-4 sm:grid-cols-[88px_1fr]" style="border-top:1px solid var(--color-hairline);">
+          <p class="text-[10px] font-mono uppercase pt-2" style="color:var(--color-teal); letter-spacing:0.18em;">TL;DR</p>
+          <p style="font-family:var(--font-serif); font-size:clamp(19px, 2.2vw, 24px); line-height:1.5; color:var(--color-ink); font-style:italic; font-weight:400;">
+            {summary}
+          </p>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- Body + TOC -->
+  <section class="pb-28">
+    <div class="max-w-6xl mx-auto px-6 grid lg:grid-cols-[220px_1fr] gap-12">
+      <!-- TOC -->
+      <aside class="hidden lg:block">
+        <div class="sticky top-24">
+          <p class="text-[10px] font-mono uppercase mb-3" style="color:var(--color-ink-faint); letter-spacing:0.14em;">Contents</p>
+          <ul class="flex flex-col gap-2">
+            {toc.map(t => (
+              <li>
+                <a href={`#${t.id}`} class="toc-link text-[13px]" style="color:var(--color-ink-mute);">{t.label}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Body -->
+      <article class="legal-body max-w-2xl">
+        <slot />
+      </article>
+    </div>
+  </section>
+</main>
+
+<Footer />
+
+<style>
+  .toc-link { transition: color 0.15s ease; }
+  .toc-link:hover { color: var(--color-ink); }
+
+  .legal-body :global(section) { scroll-margin-top: 6rem; }
+
+  .legal-body :global(h2) {
+    font-family: var(--font-serif);
+    font-size: clamp(24px, 2.4vw, 30px);
+    line-height: 1.2;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    color: var(--color-ink);
+  }
+  .legal-body :global(section:first-child h2) { margin-top: 0; }
+
+  .legal-body :global(h3) {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-style: italic;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-ink);
+  }
+
+  .legal-body :global(p) {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 1.72;
+    color: var(--color-ink-soft);
+    margin-bottom: 1rem;
+  }
+
+  .legal-body :global(ul), .legal-body :global(ol) {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 1.72;
+    color: var(--color-ink-soft);
+    margin-bottom: 1rem;
+    padding-left: 1.25rem;
+  }
+  .legal-body :global(ul) { list-style-type: disc; }
+  .legal-body :global(ol) { list-style-type: decimal; }
+  .legal-body :global(li) { margin-bottom: 0.4rem; }
+  .legal-body :global(li::marker) { color: var(--color-teal); }
+
+  .legal-body :global(a) {
+    color: var(--color-teal);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  .legal-body :global(a:hover) { color: var(--color-ink); }
+
+  .legal-body :global(strong) { color: var(--color-ink); font-weight: 600; }
+
+  .legal-body :global(code) {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--color-cream-warm);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--color-ink);
+  }
+
+  .legal-body :global(.callout) {
+    padding: 1.25rem 1.4rem;
+    border-radius: 12px;
+    background: var(--color-cream-warm);
+    border-left: 3px solid var(--color-teal);
+    margin: 1.5rem 0;
+  }
+  .legal-body :global(.callout p:last-child) { margin-bottom: 0; }
+
+  .legal-body :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.25rem 0;
+    font-family: var(--font-serif);
+    font-size: 14px;
+  }
+  .legal-body :global(th), .legal-body :global(td) {
+    text-align: left;
+    padding: 0.75rem 0.75rem;
+    border-bottom: 1px solid var(--color-hairline);
+    color: var(--color-ink-soft);
+    vertical-align: top;
+  }
+  .legal-body :global(th) {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-ink-faint);
+    font-weight: normal;
+  }
+</style>

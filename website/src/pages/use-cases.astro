@@ -1,0 +1,19 @@
+---
+import Base from '../layouts/Base.astro';
+import Navbar from '../components/Navbar.astro';
+import UseCases from '../components/UseCases.astro';
+import Footer from '../components/Footer.astro';
+
+const title = 'Use cases — rekody';
+const description = 'rekody works for developers, writers, students, clinicians, lawyers, researchers, founders, designers — and for the everyday stuff in between. Dictation that learns your vocabulary, whatever your field.';
+---
+
+<Base title={title} description={description}>
+  <Navbar />
+  <main>
+    <!-- Top spacer so content clears the fixed navbar -->
+    <div style="height:6rem;"></div>
+    <UseCases />
+  </main>
+  <Footer />
+</Base>

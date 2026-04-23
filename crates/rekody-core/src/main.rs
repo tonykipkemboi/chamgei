@@ -902,7 +902,7 @@ fn print_permission(name: &str, status: MicCheck) {
 
 async fn cmd_update(check_only: bool) -> Result<()> {
     const CURRENT: &str = env!("CARGO_PKG_VERSION");
-    const REPO: &str = "tonykipkemboi/rekody";
+    const REPO: &str = "rekody/rekody";
 
     println!();
     println!(

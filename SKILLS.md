@@ -25,7 +25,7 @@ optional LLM cleanup, and text injection at your cursor -- all behind a single h
 
 If the user gives a vague instruction like "just set it up", ask them at minimum which STT engine and whether they want LLM cleanup. Do not default to cloud providers without explicit consent — privacy is a core value of this tool.
 
-**Repository:** <https://github.com/tonykipkemboi/rekody>
+**Repository:** <https://github.com/rekody/rekody>
 **Version:** 0.5.1
 **License:** MIT OR Apache-2.0
 
@@ -86,7 +86,7 @@ Follow the decision tree below. Prefer the one-line installer (Option A) for sim
 Downloads the precompiled binary and a Whisper model. No Rust toolchain needed.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tonykipkemboi/rekody/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rekody/rekody/main/install.sh | bash
 ```
 
 This script will:
@@ -114,7 +114,7 @@ if ! command -v cargo &>/dev/null; then
 fi
 
 # 2. Clone the repository
-git clone https://github.com/tonykipkemboi/rekody.git
+git clone https://github.com/rekody/rekody.git
 cd rekody
 
 # 3. Build the release binary

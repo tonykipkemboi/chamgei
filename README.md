@@ -16,14 +16,14 @@ Hold `⌥Space`, speak, release. Your words appear at the cursor — anywhere on
 
 ```bash
 # Install via Homebrew (recommended)
-brew tap tonykipkemboi/rekody
+brew tap rekody/rekody
 brew install rekody
 
 # Or one-line installer (no Homebrew needed)
-curl -fsSL https://raw.githubusercontent.com/tonykipkemboi/rekody/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rekody/rekody/main/install.sh | bash
 
 # Or build from source
-git clone https://github.com/tonykipkemboi/rekody.git
+git clone https://github.com/rekody/rekody.git
 cd rekody
 make install
 

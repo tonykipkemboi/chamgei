@@ -20,7 +20,7 @@ Thanks for your interest in contributing! This guide covers everything you need 
 ### Getting started
 
 ```bash
-git clone https://github.com/tonykipkemboi/rekody.git
+git clone https://github.com/rekody/rekody.git
 cd rekody
 npm install
 cargo tauri dev

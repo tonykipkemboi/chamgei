@@ -14,7 +14,7 @@ version = "0.5.1"
 edition = "2024"
 license = "MIT"
 authors = ["Tony Kipkemboi"]
-repository = "https://github.com/tonykipkemboi/rekody"
+repository = "https://github.com/rekody/rekody"
 
 [workspace.dependencies]
 rekody-core = { path = "crates/rekody-core" }

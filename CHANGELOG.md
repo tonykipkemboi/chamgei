@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2] - 2026-04-22
+
+### Changed
+
+- **Moved to GitHub organization:** `tonykipkemboi/rekody` → `rekody/rekody`. All install commands, documentation, release workflow, and in-app references point to the new location.
+- **Homebrew tap moved:** `tonykipkemboi/homebrew-rekody` → `rekody/homebrew-rekody`. Re-tap with `brew untap tonykipkemboi/rekody && brew tap rekody/rekody`.
+- New lowercase `r` + dot lettermark replaces the former chamgei "C" mark across the website and GitHub avatar.
+
 ## [0.5.1] - 2026-04-21
 
 ### Added

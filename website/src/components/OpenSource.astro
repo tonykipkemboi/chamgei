@@ -1,0 +1,299 @@
+---
+import { version } from '../lib/version';
+
+const crates = [
+  {
+    name: 'rekody-core',
+    role: 'Orchestrator',
+    body: 'Ties the pipeline together. State machine, config loading, logging, error surface. Every other crate plugs in here.',
+  },
+  {
+    name: 'rekody-audio',
+    role: 'Capture + VAD',
+    body: 'cpal-based microphone capture, rubato resampling to 16kHz mono, RMS voice activity detection. Zero allocations on the hot path.',
+  },
+  {
+    name: 'rekody-stt',
+    role: 'Transcription',
+    body: 'Speech-to-text adapters. Whisper tiny runs locally for free users. Cloud providers (Deepgram, AssemblyAI, Groq) plug in as drop-in backends.',
+  },
+  {
+    name: 'rekody-llm',
+    role: 'Post-processing',
+    body: 'Cleanup pass — punctuation, capitalization, filler removal. 11 providers with automatic failover and streaming support. Skipped entirely in fast mode.',
+  },
+  {
+    name: 'rekody-inject',
+    role: 'Cursor delivery',
+    body: 'Types the text where your cursor is. Uses the macOS Accessibility API with a clipboard-paste fallback for apps that block synthetic keystrokes.',
+  },
+  {
+    name: 'rekody-hotkey',
+    role: 'Global shortcut',
+    body: 'Push-to-talk listener built on CGEventTap. Reassignable. Works system-wide, survives app switches, releases cleanly on shutdown.',
+  },
+];
+
+const tabs = [
+  {
+    id: 'brew',
+    label: 'brew',
+    recommended: true,
+    lines: [
+      { tokens: [ {c:'cmd', t:'brew'}, {c:'flag', t:' tap'}, {c:'str', t:' rekody/rekody'} ] },
+      { tokens: [ {c:'cmd', t:'brew'}, {c:'flag', t:' install'}, {c:'str', t:' rekody'} ] },
+    ],
+    note: '— tap + install. Updates via <code>brew upgrade rekody</code>.',
+  },
+  {
+    id: 'source',
+    label: 'from source',
+    recommended: false,
+    lines: [
+      { tokens: [ {c:'cmd', t:'git'}, {c:'flag', t:' clone'}, {c:'url', t:' https://github.com/rekody/rekody.git'} ] },
+      { tokens: [ {c:'cmd', t:'cd'}, {c:'str', t:' rekody'}, {c:'flag', t:' && '}, {c:'cmd', t:'make'}, {c:'str', t:' install'} ] },
+    ],
+    note: '— builds from source. Requires the Rust stable toolchain.',
+  },
+  {
+    id: 'cargo',
+    label: 'cargo',
+    recommended: false,
+    lines: [
+      { tokens: [ {c:'cmd', t:'cargo'}, {c:'flag', t:' install --git'}, {c:'url', t:' https://github.com/rekody/rekody'}, {c:'str', t:' rekody-core'} ] },
+    ],
+    note: '— installs into <code>~/.cargo/bin</code>. Rust users only.',
+  },
+];
+---
+
+<!-- Hero -->
+<section class="relative pt-14 pb-20" style="background:var(--color-cream);">
+  <div class="max-w-4xl mx-auto px-6 text-center">
+    <p class="text-[11px] font-mono uppercase mb-5" style="color:var(--color-teal); letter-spacing:0.16em;">— Open source</p>
+    <h1 class="display mb-6" style="font-size:clamp(44px, 6.2vw, 76px); line-height:1.02;">
+      rekody is <em style="font-style:italic; color:var(--color-teal);">open</em>. <br/>All the way down.
+    </h1>
+    <p class="body-serif max-w-2xl mx-auto" style="font-size:18px; color:var(--color-ink-soft);">
+      Every line of the dictation engine is on GitHub under MIT. Six small Rust crates, one CLI binary, no hidden runtime. Read it, audit it, fork it, run it — forever, for free.
+    </p>
+
+    <div class="flex flex-wrap items-center justify-center gap-2 mt-8">
+      <a href="https://github.com/rekody/rekody" target="_blank" rel="noopener noreferrer" class="pill pill-dark" style="padding:0.625rem 1rem;">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.7c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.69.92.69 1.85V21c0 .27.16.58.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+        Star on GitHub
+      </a>
+      <a href="https://github.com/rekody/rekody/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="pill pill-ghost" style="padding:0.625rem 1rem;">
+        Read the MIT license
+      </a>
+      <span class="font-mono text-[11px] ml-2" style="color:var(--color-ink-faint);">v{version} · MIT · Rust 2024</span>
+    </div>
+  </div>
+</section>
+
+<!-- Crates grid -->
+<section class="relative py-20" style="background:var(--color-cream-warm); border-top:1px solid var(--color-hairline);">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="mb-12 max-w-2xl">
+      <p class="text-[11px] font-mono uppercase mb-4" style="color:var(--color-ink-faint); letter-spacing:0.14em;">— The workspace</p>
+      <h2 class="display mb-4" style="font-size:clamp(32px, 4vw, 48px);">Six crates. One binary.</h2>
+      <p class="body-serif" style="font-size:16px; color:var(--color-ink-soft);">
+        Each crate has one job and a small surface area. Swap a backend, fork a piece, or read the whole thing in an afternoon.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {crates.map(c => (
+        <a
+          href={`https://github.com/rekody/rekody/tree/main/crates/${c.name}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="crate-card group block rounded-xl p-6 transition-all"
+          style="background:#FFFFFF; border:1px solid var(--color-hairline);"
+        >
+          <div class="flex items-baseline justify-between mb-2 gap-3">
+            <code class="font-mono text-[14px]" style="color:var(--color-ink);">{c.name}</code>
+            <span class="text-[10px] font-mono uppercase" style="color:var(--color-teal); letter-spacing:0.12em;">{c.role}</span>
+          </div>
+          <p class="body-serif text-[14px]" style="color:var(--color-ink-soft); line-height:1.55;">{c.body}</p>
+          <span class="inline-flex items-center gap-1 mt-4 text-[12px] font-mono" style="color:var(--color-ink-mute);">
+            View source
+            <svg class="w-3 h-3 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- Install the CLI -->
+<section class="relative py-20" style="background:var(--color-cream);">
+  <div class="max-w-4xl mx-auto px-6">
+    <div class="text-center mb-12">
+      <p class="text-[11px] font-mono uppercase mb-4" style="color:var(--color-teal); letter-spacing:0.14em;">— Install the CLI</p>
+      <h2 class="display mb-4" style="font-size:clamp(32px, 4vw, 48px);">Pick a path. Any works.</h2>
+      <p class="body-serif max-w-xl mx-auto" style="font-size:16px; color:var(--color-ink-soft);">
+        No installer, no account, no network fetch-on-launch. The binary is ~5MB, the Whisper tiny model is ~75MB, and everything stays on your machine.
+      </p>
+    </div>
+
+    <div class="rounded-2xl overflow-hidden" style="background:var(--color-cream-warm); border:1px solid var(--color-hairline); box-shadow:0 24px 60px -30px rgba(15,23,23,0.18);">
+      <div class="flex items-center gap-1 px-4 pt-4 pb-0 overflow-x-auto scrollbar-none">
+        {tabs.map((t, i) => (
+          <button
+            data-os-tab={t.id}
+            class="os-tab inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-[13px] font-mono whitespace-nowrap shrink-0 transition-colors"
+            data-active={i === 0 ? 'true' : 'false'}
+          >
+            <span class="os-tab-dot w-1.5 h-1.5 rounded-full" style="background:var(--color-teal);"></span>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div class="px-4 pb-4">
+        {tabs.map((t, i) => (
+          <div data-os-panel={t.id} class={i !== 0 ? 'hidden' : ''}>
+            <div class="rounded-xl mt-3" style="background:#FFFFFF; border:1px solid var(--color-hairline-soft);">
+              <div class="flex items-start gap-4 px-5 py-4">
+                <span class="tok-prompt font-mono text-sm shrink-0 mt-0.5">$</span>
+                <pre class="font-mono text-[14px] leading-[1.65] overflow-x-auto flex-1 m-0">{t.lines.map(line => (
+                  <div>{line.tokens.map(tok => <span class={`tok-${tok.c}`}>{tok.t}</span>)}</div>
+                ))}</pre>
+                <button
+                  data-os-copy={t.id}
+                  class="shrink-0 mt-0.5 pill pill-ghost"
+                  style="padding:0.4rem 0.7rem; font-size:12px;"
+                  aria-label={`Copy ${t.label} command`}
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <p class="px-5 pb-4 text-[13px] body-serif italic" style="color:var(--color-ink-faint);" set:html={t.note}></p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <p class="text-center mt-6 text-[12px] font-mono" style="color:var(--color-ink-mute);">
+      macOS 13+ · Apple Silicon · Intel · Accessibility + Microphone permissions
+    </p>
+  </div>
+</section>
+
+<!-- Why MIT -->
+<section class="relative py-20" style="background:var(--color-ink); color:var(--color-cream);">
+  <div class="max-w-4xl mx-auto px-6">
+    <div class="grid md:grid-cols-[1fr_380px] gap-12 items-start">
+      <div>
+        <p class="text-[11px] font-mono uppercase mb-4" style="color:#6BC5D0; letter-spacing:0.14em;">— The license</p>
+        <h2 class="display mb-6" style="font-size:clamp(32px, 4vw, 48px); color:var(--color-cream);">MIT. Nothing fancy.</h2>
+        <div class="body-serif space-y-4" style="font-size:16px; color:rgba(251,250,244,0.78); line-height:1.7;">
+          <p>
+            Use it at work. Fork it for your own thing. Bundle it with a closed-source product. Rip out the hotkey crate and drop it in a different app. We don't ask.
+          </p>
+          <p>
+            The only thing MIT requires is that you keep the copyright notice. That's it — no viral terms, no redistribution clause, no patent grant gymnastics.
+          </p>
+          <p>
+            The bar we set for ourselves: the CLI is, and always will be, good enough to use on its own. If it ever stops being that, MIT means you can take it somewhere better.
+          </p>
+        </div>
+      </div>
+
+      <aside class="rounded-xl p-6" style="background:rgba(251,250,244,0.06); border:1px solid rgba(251,250,244,0.1);">
+        <p class="text-[11px] font-mono uppercase mb-3" style="color:#6BC5D0; letter-spacing:0.14em;">— What's in the box</p>
+        <ul class="space-y-2.5 text-[14px]" style="color:rgba(251,250,244,0.82); font-family:var(--font-serif);">
+          <li class="flex items-start gap-2"><span style="color:#6BC5D0;">✓</span> Microphone capture + VAD</li>
+          <li class="flex items-start gap-2"><span style="color:#6BC5D0;">✓</span> Local Whisper tiny (runs offline)</li>
+          <li class="flex items-start gap-2"><span style="color:#6BC5D0;">✓</span> Bring-your-own-key cloud STT + LLM</li>
+          <li class="flex items-start gap-2"><span style="color:#6BC5D0;">✓</span> Global push-to-talk hotkey</li>
+          <li class="flex items-start gap-2"><span style="color:#6BC5D0;">✓</span> Cursor-level text injection</li>
+          <li class="flex items-start gap-2"><span style="color:#6BC5D0;">✓</span> 100+ language support (model-dependent)</li>
+          <li class="flex items-start gap-2"><span style="color:#6BC5D0;">✓</span> TOML config, no telemetry</li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- Contribute -->
+<section class="relative py-20" style="background:var(--color-cream-warm);">
+  <div class="max-w-4xl mx-auto px-6 text-center">
+    <p class="text-[11px] font-mono uppercase mb-4" style="color:var(--color-teal); letter-spacing:0.14em;">— Contribute</p>
+    <h2 class="display mb-4" style="font-size:clamp(32px, 4vw, 48px);">Issues, PRs, and opinions welcome.</h2>
+    <p class="body-serif max-w-xl mx-auto mb-10" style="font-size:16px; color:var(--color-ink-soft);">
+      The repo is small and the surface area is small. Bug reports with repro steps get triaged quickly. Good PRs get merged.
+    </p>
+
+    <div class="grid sm:grid-cols-3 gap-4 text-left">
+      <a href="https://github.com/rekody/rekody/issues" target="_blank" rel="noopener noreferrer" class="block rounded-xl p-6 transition-all" style="background:#FFFFFF; border:1px solid var(--color-hairline);">
+        <p class="font-mono text-[12px] mb-2" style="color:var(--color-teal); letter-spacing:0.08em;">FILE AN ISSUE</p>
+        <p class="body-serif text-[14px]" style="color:var(--color-ink-soft); line-height:1.55;">Something broken? Something missing? Tell us — ideally with what you ran and what happened.</p>
+      </a>
+      <a href="https://github.com/rekody/rekody/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" class="block rounded-xl p-6 transition-all" style="background:#FFFFFF; border:1px solid var(--color-hairline);">
+        <p class="font-mono text-[12px] mb-2" style="color:var(--color-teal); letter-spacing:0.08em;">SEND A PR</p>
+        <p class="body-serif text-[14px]" style="color:var(--color-ink-soft); line-height:1.55;">Read CONTRIBUTING, run the tests, keep the diff tight. Small PRs get merged fast.</p>
+      </a>
+      <a href="https://github.com/rekody/rekody/discussions" target="_blank" rel="noopener noreferrer" class="block rounded-xl p-6 transition-all" style="background:#FFFFFF; border:1px solid var(--color-hairline);">
+        <p class="font-mono text-[12px] mb-2" style="color:var(--color-teal); letter-spacing:0.08em;">DISCUSS</p>
+        <p class="body-serif text-[14px]" style="color:var(--color-ink-soft); line-height:1.55;">Design questions, roadmap thoughts, "should rekody do X?" — Discussions is the right room.</p>
+      </a>
+    </div>
+
+    <div class="mt-12">
+      <a href="https://github.com/rekody/rekody" target="_blank" rel="noopener noreferrer" class="pill pill-dark" style="padding:0.75rem 1.25rem;">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.7c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.69.92.69 1.85V21c0 .27.16.58.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+        github.com/rekody/rekody
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .crate-card:hover { border-color: var(--color-teal); box-shadow: 0 8px 24px -16px rgba(32,128,141,0.3); transform: translateY(-1px); }
+  .os-tab { color: var(--color-ink-mute); background: transparent; border: 1px solid transparent; }
+  .os-tab:hover { color: var(--color-ink); background: rgba(15,23,23,0.04); }
+  .os-tab[data-active="true"] { color: var(--color-ink); background: #FFFFFF; border-color: var(--color-hairline); }
+  .os-tab .os-tab-dot { display: none; }
+  .os-tab[data-active="true"] .os-tab-dot { display: inline-block; }
+</style>
+
+<script>
+  const osTabs   = document.querySelectorAll<HTMLButtonElement>('.os-tab');
+  const osPanels = document.querySelectorAll<HTMLElement>('[data-os-panel]');
+
+  osTabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.osTab!;
+      osTabs.forEach(b => b.setAttribute('data-active', 'false'));
+      btn.setAttribute('data-active', 'true');
+      osPanels.forEach(p => p.classList.add('hidden'));
+      document.querySelector<HTMLElement>(`[data-os-panel="${target}"]`)?.classList.remove('hidden');
+    });
+  });
+
+  const osCopyIcon  = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> Copy`;
+  const osCheckIcon = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copied`;
+
+  const osCmds: Record<string, string> = {
+    brew:   'brew tap rekody/rekody\nbrew install rekody',
+    source: 'git clone https://github.com/rekody/rekody.git\ncd rekody && make install',
+    cargo:  'cargo install --git https://github.com/rekody/rekody rekody-core',
+  };
+
+  document.querySelectorAll<HTMLButtonElement>('[data-os-copy]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.osCopy!;
+      try {
+        await navigator.clipboard.writeText(osCmds[id] ?? '');
+        btn.innerHTML = osCheckIcon;
+        setTimeout(() => { btn.innerHTML = osCopyIcon; }, 1800);
+      } catch {}
+    });
+  });
+</script>

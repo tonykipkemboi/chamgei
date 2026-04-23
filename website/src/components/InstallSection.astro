@@ -5,7 +5,7 @@ const tabs = [
     label: 'brew',
     recommended: true,
     lines: [
-      { tokens: [ {c:'cmd', t:'brew'}, {c:'flag', t:' tap'}, {c:'str', t:' tonykipkemboi/rekody'} ] },
+      { tokens: [ {c:'cmd', t:'brew'}, {c:'flag', t:' tap'}, {c:'str', t:' rekody/rekody'} ] },
       { tokens: [ {c:'cmd', t:'brew'}, {c:'flag', t:' install'}, {c:'str', t:' rekody'} ] },
     ],
     note: '— tap + install. Updates via <code>brew upgrade rekody</code>.',
@@ -24,7 +24,7 @@ const tabs = [
     label: 'make',
     recommended: false,
     lines: [
-      { tokens: [ {c:'cmd', t:'git'}, {c:'flag', t:' clone'}, {c:'url', t:' https://github.com/tonykipkemboi/rekody.git'} ] },
+      { tokens: [ {c:'cmd', t:'git'}, {c:'flag', t:' clone'}, {c:'url', t:' https://github.com/rekody/rekody.git'} ] },
       { tokens: [ {c:'cmd', t:'cd'}, {c:'str', t:' rekody'}, {c:'flag', t:' && '}, {c:'cmd', t:'make'}, {c:'str', t:' install'} ] },
     ],
     note: '— builds from source. Requires the Rust stable toolchain.',
@@ -34,7 +34,7 @@ const tabs = [
     label: 'cargo',
     recommended: false,
     lines: [
-      { tokens: [ {c:'cmd', t:'cargo'}, {c:'flag', t:' install --git'}, {c:'url', t:' https://github.com/tonykipkemboi/rekody'}, {c:'str', t:' rekody-core'} ] },
+      { tokens: [ {c:'cmd', t:'cargo'}, {c:'flag', t:' install --git'}, {c:'url', t:' https://github.com/rekody/rekody'}, {c:'str', t:' rekody-core'} ] },
     ],
     note: '— installs into <code>~/.cargo/bin</code>. Rust users only.',
   },
@@ -44,7 +44,7 @@ const tabs = [
     recommended: false,
     lines: [
       { tokens: [ {c:'comment', t:'# signed universal .dmg — drag into Applications'} ] },
-      { tokens: [ {c:'cmd', t:'open'}, {c:'url', t:' https://github.com/tonykipkemboi/rekody/releases/latest'} ] },
+      { tokens: [ {c:'cmd', t:'open'}, {c:'url', t:' https://github.com/rekody/rekody/releases/latest'} ] },
     ],
     note: '— no terminal required. Double-click the .dmg, drag to Applications.',
   },
@@ -111,7 +111,7 @@ const tabs = [
             <!-- Action buttons -->
             <div class="flex flex-wrap items-center gap-2 mt-4 mb-1 px-1">
               <a
-                href="https://github.com/tonykipkemboi/rekody/releases/latest"
+                href="https://github.com/rekody/rekody/releases/latest"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="pill pill-dark"
@@ -126,7 +126,7 @@ const tabs = [
                 <span class="font-mono text-[11px] ml-1" style="color:var(--color-ink-faint);">5MB</span>
               </a>
               <a
-                href="https://github.com/tonykipkemboi/rekody"
+                href="https://github.com/rekody/rekody"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="pill pill-ghost"
@@ -194,11 +194,11 @@ const tabs = [
   const checkIcon = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copied`;
 
   const cmds: Record<string, string> = {
-    brew:  'brew tap tonykipkemboi/rekody\nbrew install rekody',
+    brew:  'brew tap rekody/rekody\nbrew install rekody',
     curl:  'curl -fsSL https://rekody.com/install.sh | bash',
-    make:  'git clone https://github.com/tonykipkemboi/rekody.git\ncd rekody && make install',
-    cargo: 'cargo install --git https://github.com/tonykipkemboi/rekody rekody-core',
-    dmg:   'open https://github.com/tonykipkemboi/rekody/releases/latest',
+    make:  'git clone https://github.com/rekody/rekody.git\ncd rekody && make install',
+    cargo: 'cargo install --git https://github.com/rekody/rekody rekody-core',
+    dmg:   'open https://github.com/rekody/rekody/releases/latest',
   };
 
   document.querySelectorAll<HTMLButtonElement>('[data-copy-btn]').forEach(btn => {
