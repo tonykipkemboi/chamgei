@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.5.2] - 2026-04-22
+## [0.5.2] - 2026-04-23
+
+### Fixed
+
+- **Long-audio transcription:** `LocalWhisperEngine::build_params` now branches on audio length. Audio >25s uses multi-segment decoding with timestamps and hallucination guards (`no_speech_thold=0.6`, `logprob_thold=-1.0`). Audio ≤25s keeps the original single-segment fast path, so dictation latency is unchanged. Adds a `short_audio_smoke` smoke test.
 
 ### Changed
 

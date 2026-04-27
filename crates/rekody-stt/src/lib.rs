@@ -215,19 +215,42 @@ impl LocalWhisperEngine {
         Ok(engine)
     }
 
-    /// Build [`FullParams`] with sensible low-latency defaults for dictation.
-    fn build_params(&self) -> FullParams<'_, '_> {
+    /// Build [`FullParams`] tuned for the audio length being transcribed.
+    ///
+    /// `long_audio` selects the decoding profile:
+    /// - `false` (≤25 s): single-segment, no timestamps — minimal latency
+    ///   for the push-to-talk dictation path.
+    /// - `true` (>25 s): multi-segment with whisper.cpp's sliding-window
+    ///   mechanism, timestamps enabled, and standard hallucination guards
+    ///   (`no_speech_thold`, `logprob_thold`). Required because
+    ///   `single_segment` truncates anything past Whisper's 30 s window.
+    fn build_params(&self, long_audio: bool) -> FullParams<'_, '_> {
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
         // Set language: None enables Whisper's built-in auto language detection.
         params.set_language(self.language.as_deref());
 
-        // Single-segment mode for minimal latency
-        params.set_single_segment(true);
+        if long_audio {
+            // Let whisper.cpp run multi-segment with its sliding-window decoder.
+            // Timestamps anchor segment-boundary decisions across the windows.
+            params.set_single_segment(false);
+            params.set_print_timestamps(true);
+            params.set_token_timestamps(true);
 
-        // No timestamps needed for dictation
-        params.set_print_timestamps(false);
-        params.set_token_timestamps(false);
+            // Standard Whisper hallucination guards. These thresholds match
+            // the upstream whisper.cpp defaults for long-form audio and help
+            // suppress repeated/looped output on silence or noise.
+            // (Methods are named `_thold` in whisper-rs 0.13.)
+            params.set_no_speech_thold(0.6);
+            params.set_logprob_thold(-1.0);
+        } else {
+            // Single-segment mode for minimal latency on short dictation clips.
+            params.set_single_segment(true);
+
+            // No timestamps needed for dictation
+            params.set_print_timestamps(false);
+            params.set_token_timestamps(false);
+        }
 
         // Suppress non-speech tokens (reduce hallucinations on silence)
         params.set_suppress_non_speech_tokens(true);
@@ -256,10 +279,18 @@ impl SttEngine for LocalWhisperEngine {
             });
         }
 
+        // whisper.cpp processes audio at 16 kHz. The C engine has a 30 s window
+        // when `single_segment` is set; pick a 25 s threshold so we leave a
+        // small buffer below that limit before switching to multi-segment.
+        const LONG_AUDIO_THRESHOLD_SECS: f64 = 25.0;
+        let duration_secs = samples.len() as f64 / 16000.0;
+        let long_audio = duration_secs > LONG_AUDIO_THRESHOLD_SECS;
+
         debug!(
             num_samples = samples.len(),
-            duration_secs = samples.len() as f64 / 16000.0,
+            duration_secs,
             model = ?self.model,
+            long_audio,
             "starting transcription"
         );
 
@@ -273,7 +304,7 @@ impl SttEngine for LocalWhisperEngine {
             SttError::TranscriptionFailed(format!("failed to create whisper state: {}", e))
         })?;
 
-        let params = self.build_params();
+        let params = self.build_params(long_audio);
 
         // Run the full whisper inference pipeline.
         state.full(params, samples).map_err(|e| {
