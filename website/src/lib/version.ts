@@ -1,13 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+declare const __REKODY_VERSION__: string;
 
-const here = dirname(fileURLToPath(import.meta.url));
-const cargoToml = readFileSync(resolve(here, '../../../Cargo.toml'), 'utf8');
-const match = cargoToml.match(/^\s*version\s*=\s*"([^"]+)"/m);
-
-if (!match) {
-  throw new Error('Could not find version in Cargo.toml');
-}
-
-export const version = match[1];
+export const version = __REKODY_VERSION__;

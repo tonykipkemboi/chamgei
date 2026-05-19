@@ -3,3 +3,5 @@ dist/
 node_modules/
 .vercel/
 *.local
+test-results/
+playwright-report/
