@@ -21,6 +21,7 @@ pub mod prompts;
 pub mod snippets;
 pub mod stats;
 pub mod status;
+pub mod ui;
 
 /// Configuration for a single LLM provider.
 #[derive(Clone, Serialize, Deserialize)]

@@ -15,6 +15,11 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 use rekody_core::onboarding;
+use rekody_core::ui::{
+    BOLD, BRAND, BRAND_LIGHT, CREAM_ANSI as CREAM, DIM_ANSI as DIM, OK_ANSI as OK, RESET,
+    SLOW_ANSI as SLOW, SUBTLE_ANSI as SUBTLE, WARN_ANSI as WARN, card_bottom, card_rail, card_top,
+    latency_ansi, sep,
+};
 use rekody_core::{Pipeline, RekodyConfig, load_config};
 
 // ── CLI definition ─────────────────────────────────────────────────────────
@@ -402,12 +407,27 @@ fn cmd_history(
         return Ok(());
     }
 
+    // Compose card subtitle: entry count + active filter, if any.
+    let filter_note = if let Some(ref q) = search {
+        Some(format!("search \"{}\"", q))
+    } else {
+        app_filter.as_ref().map(|a| format!("app \"{}\"", a))
+    };
+    let subtitle = match (filter_note.as_deref(), filtered.len(), all.len()) {
+        (Some(f), m, t) if m != t => format!("{} of {} entries  {sep}  {}", m, t, f, sep = sep()),
+        (Some(f), _, t) => format!("{} entries  {sep}  {}", t, f, sep = sep()),
+        (None, _, t) => format!("{} entries", t),
+    };
+
+    let head = if stats { "history · stats" } else { "history" };
+
     println!();
+    println!("{}", card_top(head, Some(&subtitle)));
+    println!("{}", card_rail());
 
     // Stats view
     if stats || shown.is_empty() {
         let total = all.len();
-        let total_filtered = filtered.len();
         let avg_stt = if total > 0 {
             all.iter().map(|e| e.stt_latency_ms).sum::<u64>() / total as u64
         } else {
@@ -431,106 +451,90 @@ fn cmd_history(
         let mut app_sorted: Vec<_> = app_counts.iter().collect();
         app_sorted.sort_by(|a, b| b.1.cmp(a.1));
 
+        let avg_total = avg_stt + avg_llm.unwrap_or(0);
+        let dot = latency_ansi(avg_total);
         println!(
-            "  {}  {}",
-            style("History Stats").bold(),
-            style("─".repeat(38)).dim()
+            "{rail}   {DIM}total       {RESET}  {CREAM}{BOLD}{}{RESET}  {sep}  {DIM}all-time{RESET}",
+            total,
+            rail = card_rail(),
+            sep = sep()
         );
-        println!();
+        let lat = match avg_llm {
+            Some(l) => format!("{}ms STT  {sep}  {}ms LLM", avg_stt, l, sep = sep()),
+            None => format!("{}ms STT", avg_stt),
+        };
         println!(
-            "  {}  {}",
-            style("Total dictations  ").dim(),
-            style(total).white().bold()
+            "{rail}   {DIM}avg latency {RESET}  {dot}●{RESET}  {CREAM}{}{RESET}",
+            lat,
+            rail = card_rail(),
         );
-        if total_filtered != total {
-            println!(
-                "  {}  {}",
-                style("Matching filter   ").dim(),
-                style(total_filtered).white()
-            );
-        }
-        println!(
-            "  {}  {}",
-            style("Avg STT latency   ").dim(),
-            style(format!("{}ms", avg_stt)).white()
-        );
-        if let Some(llm) = avg_llm {
-            println!(
-                "  {}  {}",
-                style("Avg LLM latency   ").dim(),
-                style(format!("{}ms", llm)).white()
-            );
-        }
-        println!();
         if !app_sorted.is_empty() {
-            println!("  {}", style("Top apps").bold());
+            println!("{}", card_rail());
+            println!("{rail}   {DIM}top apps    {RESET}", rail = card_rail());
             for (app, count) in app_sorted.iter().take(5) {
+                let app_disp = if app.len() > 28 {
+                    format!("{}…", &app[..27])
+                } else {
+                    app.to_string()
+                };
                 println!(
-                    "    {}  {}",
-                    style(format!("{:<28}", app)).white(),
-                    style(format!("{} dictations", count)).dim()
+                    "{rail}      {CREAM}{:<28}{RESET}  {DIM}{} dictations{RESET}",
+                    app_disp,
+                    count,
+                    rail = card_rail(),
                 );
             }
-            println!();
         }
 
         if shown.is_empty() {
-            if search.is_some() || app_filter.is_some() {
-                println!("  {}", style("No entries match the filter.").yellow());
+            println!("{}", card_rail());
+            let msg = if search.is_some() || app_filter.is_some() {
+                format!("{WARN}no entries match the filter{RESET}")
             } else {
-                println!("  {}", style("No history yet — start dictating!").dim());
-            }
+                format!("{DIM}no history yet — start dictating!{RESET}")
+            };
+            println!("{rail}   {}", msg, rail = card_rail());
+            println!("{}", card_bottom(48, None));
             println!();
             return Ok(());
         }
-        println!(
-            "  {}  {}",
-            style("Recent").bold(),
-            style("─".repeat(45)).dim()
-        );
-        println!();
-    } else {
-        // Header
-        let mut header = format!(
-            "  {}  {}",
-            style("History").bold(),
-            style("─".repeat(40)).dim()
-        );
-        if let Some(ref q) = search {
-            header = format!(
-                "  {}  {}  {}",
-                style("History").bold(),
-                style("─".repeat(30)).dim(),
-                style(format!("search: \"{}\"", q)).cyan()
-            );
-        } else if let Some(ref app) = app_filter {
-            header = format!(
-                "  {}  {}  {}",
-                style("History").bold(),
-                style("─".repeat(30)).dim(),
-                style(format!("app: \"{}\"", app)).cyan()
-            );
+        if stats {
+            // Stats-only view: stats already printed, no entry list follows.
+            println!("{}", card_bottom(48, None));
+            println!();
+            return Ok(());
         }
-        println!("{}", header);
-        println!();
+        // Empty `shown` was handled above; fall through to listing for the
+        // mixed (stats + entries) case.
     }
 
-    // Entry listing grouped by date
+    // Entry listing grouped by date.
     let mut last_date = String::new();
     for entry in &shown {
         let date = entry.timestamp.get(..10).unwrap_or("").to_string();
         if date != last_date {
             if !last_date.is_empty() {
-                println!();
+                println!("{}", card_rail());
             }
-            println!("  {}", style(&date).bold().underlined());
+            println!(
+                "{rail}   {SUBTLE}{BOLD}{}{RESET}",
+                &date,
+                rail = card_rail()
+            );
             last_date = date;
         }
 
         let time = entry.timestamp.get(11..16).unwrap_or("--:--");
+        let total_ms = entry.stt_latency_ms + entry.llm_latency_ms.unwrap_or(0);
+        let dot = latency_ansi(total_ms);
         let latency = match entry.llm_latency_ms {
-            Some(llm) => format!("STT {}ms  LLM {}ms", entry.stt_latency_ms, llm),
-            None => format!("STT {}ms", entry.stt_latency_ms),
+            Some(llm) => format!(
+                "{}ms STT {sep} {}ms LLM",
+                entry.stt_latency_ms,
+                llm,
+                sep = sep()
+            ),
+            None => format!("{}ms STT", entry.stt_latency_ms),
         };
         let app_col = if entry.app_context.len() > 18 {
             format!("{}…", &entry.app_context[..17])
@@ -539,52 +543,56 @@ fn cmd_history(
         };
 
         if full {
-            // Full transcript — show raw + formatted on separate lines
             println!(
-                "  {}  {}  {}",
-                style(time).dim(),
-                style(format!("{:<20}", app_col)).dim(),
-                style(&latency).dim()
+                "{rail}   {DIM}{}{RESET}  {dot}●{RESET}  {DIM}{:<18}  {}{RESET}",
+                time,
+                app_col,
+                latency,
+                rail = card_rail(),
             );
-            println!("     {}", style(&entry.text).white());
+            println!(
+                "{rail}      {CREAM}{}{RESET}",
+                &entry.text,
+                rail = card_rail()
+            );
             if entry.raw_transcript != entry.text {
                 println!(
-                    "     {}  {}",
-                    style("raw:").dim(),
-                    style(&entry.raw_transcript).dim()
+                    "{rail}      {DIM}raw:  {}{RESET}",
+                    &entry.raw_transcript,
+                    rail = card_rail()
                 );
             }
         } else {
-            let max_text = 58;
+            let max_text = 56;
             let text = if entry.text.len() > max_text {
                 format!("{}…", &entry.text[..max_text - 1])
             } else {
                 entry.text.clone()
             };
             println!(
-                "  {}  {}  {}  {}",
-                style(time).dim(),
-                style(format!("{:<58}", text)).white(),
-                style(format!("{:<20}", app_col)).dim(),
-                style(&latency).dim(),
+                "{rail}   {DIM}{}{RESET}  {dot}●{RESET}  {CREAM}{:<56}{RESET}  {DIM}{:<18}{RESET}  {DIM}{}{RESET}",
+                time,
+                text,
+                app_col,
+                latency,
+                rail = card_rail(),
             );
         }
     }
-    println!();
-    println!(
-        "  {}",
-        style(format!(
-            "Showing {} of {} entries{}",
+
+    let note = if shown.len() < filtered.len() {
+        format!(
+            "showing {} of {}  {sep}  -c {} for more  {sep}  -i to browse",
             shown.len(),
             filtered.len(),
-            if shown.len() < filtered.len() {
-                format!("  —  use -c {} for more", filtered.len())
-            } else {
-                String::new()
-            }
-        ))
-        .dim()
-    );
+            filtered.len(),
+            sep = sep()
+        )
+    } else {
+        format!("showing {}  {sep}  -i to browse", shown.len(), sep = sep())
+    };
+    println!("{}", card_rail());
+    println!("{}", card_bottom(48, Some(&note)));
     println!();
     Ok(())
 }
@@ -1519,33 +1527,8 @@ impl SessionStats {
 // ── Spinner style helpers ────────────────────────────────────────────────────
 //
 // Inline status panel for the live dictation pipeline. Stays one line tall so
-// the terminal remains usable around it. Visual language matches the rekody
-// brand palette: brand teal #20808D (BRAND), lighter teal #4FB8C5 (BRAND_LIGHT),
-// cream #FBFAF4 (CREAM) for emphasis text, dim gray for secondary labels.
-// Latency dot semantics match the history TUI: <5s green, <15s amber, else red.
-
-const BRAND: &str = "\x1b[38;2;32;128;141m"; // #20808D
-const BRAND_LIGHT: &str = "\x1b[38;2;79;184;197m"; // #4FB8C5
-const CREAM: &str = "\x1b[38;2;251;250;244m"; // #FBFAF4
-const DIM: &str = "\x1b[38;2;119;119;119m";
-const SUBTLE: &str = "\x1b[38;2;85;85;85m";
-const OK: &str = "\x1b[38;2;107;203;119m";
-const WARN: &str = "\x1b[38;2;230;180;80m";
-const SLOW: &str = "\x1b[38;2;217;107;107m";
-const BOLD: &str = "\x1b[1m";
-const RESET: &str = "\x1b[0m";
-
-fn latency_color(total_ms: u64) -> &'static str {
-    match total_ms {
-        0..=4_999 => OK,
-        5_000..=14_999 => WARN,
-        _ => SLOW,
-    }
-}
-
-fn sep() -> String {
-    format!("{DIM}·{RESET}")
-}
+// the terminal remains usable around it. Palette and dot semantics live in
+// `rekody_core::ui` and are shared with the history TUI.
 
 /// Single shared style used for every state — avoids the new-line glitch
 /// caused by swapping styles while `enable_steady_tick` is running.
@@ -1601,7 +1584,7 @@ fn set_done_style(spinner: &ProgressBar, text: &str, stt_ms: &str, llm_ms: Optio
     let stt_num: u64 = stt_ms.parse().unwrap_or(0);
     let llm_num: u64 = llm_ms.and_then(|s| s.parse().ok()).unwrap_or(0);
     let total = stt_num + llm_num;
-    let dot_color = latency_color(total);
+    let dot_color = latency_ansi(total);
     let lat = match llm_ms {
         Some(l) => format!("{stt_ms}ms STT {sep} {l}ms LLM", sep = sep()),
         None => format!("{stt_ms}ms STT"),

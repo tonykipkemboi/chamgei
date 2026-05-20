@@ -34,18 +34,10 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph, Wrap};
 
 use crate::history::{History, HistoryEntry};
-
-// ── Brand palette ───────────────────────────────────────────────────────────
-
-const BRAND_TEAL: Color = Color::Rgb(0x20, 0x80, 0x8D);
-const BRAND_TEAL_LIGHT: Color = Color::Rgb(0x4F, 0xB8, 0xC5);
-const DIM: Color = Color::Rgb(0x77, 0x77, 0x77);
-const SUBTLE: Color = Color::Rgb(0x55, 0x55, 0x55);
-const FG: Color = Color::Rgb(0xE8, 0xE8, 0xE8);
-const FG_BOLD: Color = Color::Rgb(0xFB, 0xFA, 0xF4); // brand cream
-const OK: Color = Color::Rgb(0x6B, 0xCB, 0x77); // green latency
-const WARN: Color = Color::Rgb(0xE6, 0xB4, 0x50); // amber latency
-const SLOW: Color = Color::Rgb(0xD9, 0x6B, 0x6B); // red latency
+use crate::ui::{
+    BRAND_TEAL, BRAND_TEAL_LIGHT, CREAM as FG_BOLD, DIM, FG, OK_GREEN as OK, SLOW_RED as SLOW,
+    SUBTLE, WARN_AMBER as WARN,
+};
 
 // ── Public entrypoint ───────────────────────────────────────────────────────
 
