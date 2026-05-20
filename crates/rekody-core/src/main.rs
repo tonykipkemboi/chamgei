@@ -9,16 +9,12 @@ use std::time::Instant;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 use rekody_core::onboarding;
-use rekody_core::ui::{
-    BOLD, BRAND, BRAND_LIGHT, CREAM_ANSI as CREAM, DIM_ANSI as DIM, OK_ANSI as OK, RESET,
-    SLOW_ANSI as SLOW, SUBTLE_ANSI as SUBTLE, WARN_ANSI as WARN, card_bottom, card_rail, card_top,
-    latency_ansi, sep,
-};
 use rekody_core::{Pipeline, RekodyConfig, load_config};
 
 // ── CLI definition ─────────────────────────────────────────────────────────
@@ -198,7 +194,7 @@ fn cmd_config(action: Option<ConfigCmd>) -> Result<()> {
         ConfigCmd::Show => print_config(&config, &config_path),
         ConfigCmd::Path => match &config_path {
             Some(p) => println!("{}", p),
-            None => println!("  {WARN}{BOLD}!{RESET}  {CREAM}no config file found{RESET}"),
+            None => println!("{}", style("no config file found").yellow()),
         },
         ConfigCmd::Edit => {
             let path = match &config_path {
@@ -206,9 +202,9 @@ fn cmd_config(action: Option<ConfigCmd>) -> Result<()> {
                 None => {
                     let default = default_config_path();
                     println!(
-                        "  {BRAND_LIGHT}{BOLD}+{RESET}  {CREAM}creating config{RESET}  {sep}  {DIM}{}{RESET}",
-                        default,
-                        sep = sep()
+                        "{} {}",
+                        style("Creating config at").dim(),
+                        style(&default).cyan()
                     );
                     default
                 }
@@ -223,34 +219,39 @@ fn cmd_config(action: Option<ConfigCmd>) -> Result<()> {
 }
 
 fn print_config(config: &RekodyConfig, path: &Option<String>) {
+    let rule = "─".repeat(48);
     let subtitle = match path {
         Some(p) => p.clone(),
-        None => "no config file — using defaults".to_string(),
+        None => "(no config file — using defaults)".to_string(),
     };
-    let rail = card_rail();
 
     println!();
-    println!("{}", card_top("rekody config", Some(&subtitle)));
-    println!("{rail}");
+    // Top: corner + integrated title.
+    println!(
+        "  {BRAND}╭─{RESET}  {BRAND_LIGHT}{BOLD}rekody config{RESET}  {DIM}{}{RESET}",
+        subtitle
+    );
+    println!("  {BRAND}│{RESET}");
 
     // STT section
     let stt_display = stt_display_name(config);
-    println!("{rail}   {BRAND_LIGHT}{BOLD}STT{RESET}");
+    println!("  {BRAND}│{RESET}   {BRAND_LIGHT}{BOLD}STT{RESET}");
     println!(
-        "{rail}     {DIM}engine {RESET}  {CREAM}{BOLD}{}{RESET}",
+        "  {BRAND}│{RESET}     {DIM}Engine{RESET}  {CREAM}{BOLD}{}{RESET}",
         stt_display
     );
     if let Some(key) = &config.deepgram_api_key {
         println!(
-            "{rail}     {DIM}key    {RESET}  {DIM}{}{RESET}",
+            "  {BRAND}│{RESET}     {DIM}Key   {RESET}  {DIM}{}{RESET}",
             mask_key(key)
         );
     }
-    println!("{rail}");
+    println!("  {BRAND}│{RESET}");
 
     // LLM Providers section
-    println!("{rail}   {BRAND_LIGHT}{BOLD}LLM providers{RESET}");
+    println!("  {BRAND}│{RESET}   {BRAND_LIGHT}{BOLD}LLM Providers{RESET}");
     if config.providers.is_empty() {
+        // Legacy
         let has_groq = config.groq_api_key.as_ref().is_some_and(|k| !k.is_empty());
         let has_cerebras = config
             .cerebras_api_key
@@ -258,19 +259,16 @@ fn print_config(config: &RekodyConfig, path: &Option<String>) {
             .is_some_and(|k| !k.is_empty());
         if has_groq {
             println!(
-                "{rail}     {DIM}1{RESET}  {CREAM}{BOLD}groq{RESET}  {DIM}(legacy key){RESET}"
+                "  {BRAND}│{RESET}     {DIM}1{RESET}  {CREAM}{BOLD}groq{RESET}  {DIM}(legacy key){RESET}"
             );
         }
         if has_cerebras {
             println!(
-                "{rail}     {DIM}2{RESET}  {CREAM}{BOLD}cerebras{RESET}  {DIM}(legacy key){RESET}"
+                "  {BRAND}│{RESET}     {DIM}2{RESET}  {CREAM}{BOLD}cerebras{RESET}  {DIM}(legacy key){RESET}"
             );
         }
         if !has_groq && !has_cerebras {
-            println!(
-                "{rail}     {WARN}{BOLD}!{RESET}  {CREAM}none configured{RESET}  {sep}  {DIM}run: rekody setup{RESET}",
-                sep = sep()
-            );
+            println!("  {BRAND}│{RESET}     {WARN}none configured  — run: rekody setup{RESET}");
         }
     } else {
         for (i, p) in config.providers.iter().enumerate() {
@@ -280,7 +278,7 @@ fn print_config(config: &RekodyConfig, path: &Option<String>) {
                 format!("{DIM}{}{RESET}", mask_key(&p.api_key))
             };
             println!(
-                "{rail}     {DIM}{}{RESET}  {CREAM}{BOLD}{}/{}{RESET}  {}",
+                "  {BRAND}│{RESET}     {DIM}{}{RESET}  {CREAM}{BOLD}{}/{}{RESET}  {}",
                 i + 1,
                 p.name,
                 p.model,
@@ -288,30 +286,34 @@ fn print_config(config: &RekodyConfig, path: &Option<String>) {
             );
         }
     }
-    println!("{rail}");
+    println!("  {BRAND}│{RESET}");
 
     // Options section
-    println!("{rail}   {BRAND_LIGHT}{BOLD}options{RESET}");
+    println!("  {BRAND}│{RESET}   {BRAND_LIGHT}{BOLD}Options{RESET}");
     println!(
-        "{rail}     {DIM}mode   {RESET}  {CREAM}{BOLD}{}{RESET}",
+        "  {BRAND}│{RESET}     {DIM}Mode  {RESET}  {CREAM}{BOLD}{}{RESET}",
         format_activation_mode(&config.activation_mode)
     );
     println!(
-        "{rail}     {DIM}inject {RESET}  {CREAM}{BOLD}{}{RESET}",
+        "  {BRAND}│{RESET}     {DIM}Inject{RESET}  {CREAM}{BOLD}{}{RESET}",
         config.injection_method
     );
     println!(
-        "{rail}     {DIM}vad    {RESET}  {CREAM}{BOLD}{}{RESET}",
+        "  {BRAND}│{RESET}     {DIM}VAD   {RESET}  {CREAM}{BOLD}{}{RESET}",
         config.vad_threshold
     );
     let vad_mode = if config.record_all_audio {
-        "off — every frame captured (--record-all-audio)"
+        "off (record_all_audio = true — every frame captured, no gating)"
     } else {
-        "on — RMS gating"
+        "on (RMS gating; pass --record-all-audio to bypass for one session)"
     };
-    println!("{rail}     {DIM}gate   {RESET}  {CREAM}{}{RESET}", vad_mode);
-    println!("{rail}");
-    println!("{}", card_bottom(48, None));
+    println!(
+        "  {BRAND}│{RESET}     {DIM}Gate  {RESET}  {CREAM}{}{RESET}",
+        vad_mode
+    );
+    println!("  {BRAND}│{RESET}");
+    // Bottom: corner + rule, closing the card.
+    println!("  {BRAND}╰{}{RESET}", rule);
     println!();
 }
 
@@ -348,31 +350,26 @@ fn cmd_history(
     if let Some(n) = copy_nth {
         let n = n.max(1);
         let entry = all.iter().rev().nth(n - 1);
-        println!();
         match entry {
             Some(e) => {
                 let mut clipboard = arboard::Clipboard::new()?;
                 clipboard.set_text(&e.text)?;
-                let preview = if e.text.len() > 70 {
-                    format!("{}…", &e.text[..69])
-                } else {
-                    e.text.clone()
-                };
                 println!(
-                    "  {OK}{BOLD}✓{RESET}  {CREAM}copied entry #{n}{RESET}  {sep}  {DIM}clipboard{RESET}",
-                    sep = sep()
+                    "  {}  Copied entry #{} to clipboard",
+                    style("✓").green().bold(),
+                    n
                 );
-                println!("     {DIM}{}{RESET}", preview);
+                println!("     {}", style(&e.text).dim());
             }
             None => {
                 println!(
-                    "  {SLOW}{BOLD}✗{RESET}  {CREAM}no entry #{n}{RESET}  {sep}  {DIM}{} total{RESET}",
-                    all.len(),
-                    sep = sep()
+                    "  {}  No entry #{} in history ({} total)",
+                    style("✗").red().bold(),
+                    n,
+                    all.len()
                 );
             }
         }
-        println!();
         return Ok(());
     }
 
@@ -405,27 +402,12 @@ fn cmd_history(
         return Ok(());
     }
 
-    // Compose card subtitle: entry count + active filter, if any.
-    let filter_note = if let Some(ref q) = search {
-        Some(format!("search \"{}\"", q))
-    } else {
-        app_filter.as_ref().map(|a| format!("app \"{}\"", a))
-    };
-    let subtitle = match (filter_note.as_deref(), filtered.len(), all.len()) {
-        (Some(f), m, t) if m != t => format!("{} of {} entries  {sep}  {}", m, t, f, sep = sep()),
-        (Some(f), _, t) => format!("{} entries  {sep}  {}", t, f, sep = sep()),
-        (None, _, t) => format!("{} entries", t),
-    };
-
-    let head = if stats { "history · stats" } else { "history" };
-
     println!();
-    println!("{}", card_top(head, Some(&subtitle)));
-    println!("{}", card_rail());
 
     // Stats view
     if stats || shown.is_empty() {
         let total = all.len();
+        let total_filtered = filtered.len();
         let avg_stt = if total > 0 {
             all.iter().map(|e| e.stt_latency_ms).sum::<u64>() / total as u64
         } else {
@@ -449,96 +431,106 @@ fn cmd_history(
         let mut app_sorted: Vec<_> = app_counts.iter().collect();
         app_sorted.sort_by(|a, b| b.1.cmp(a.1));
 
-        let avg_total = avg_stt + avg_llm.unwrap_or(0);
-        let dot = latency_ansi(avg_total);
         println!(
-            "{rail}   {DIM}total       {RESET}  {CREAM}{BOLD}{}{RESET}  {sep}  {DIM}all-time{RESET}",
-            total,
-            rail = card_rail(),
-            sep = sep()
+            "  {}  {}",
+            style("History Stats").bold(),
+            style("─".repeat(38)).dim()
         );
-        let lat = match avg_llm {
-            Some(l) => format!("{}ms STT  {sep}  {}ms LLM", avg_stt, l, sep = sep()),
-            None => format!("{}ms STT", avg_stt),
-        };
+        println!();
         println!(
-            "{rail}   {DIM}avg latency {RESET}  {dot}●{RESET}  {CREAM}{}{RESET}",
-            lat,
-            rail = card_rail(),
+            "  {}  {}",
+            style("Total dictations  ").dim(),
+            style(total).white().bold()
         );
+        if total_filtered != total {
+            println!(
+                "  {}  {}",
+                style("Matching filter   ").dim(),
+                style(total_filtered).white()
+            );
+        }
+        println!(
+            "  {}  {}",
+            style("Avg STT latency   ").dim(),
+            style(format!("{}ms", avg_stt)).white()
+        );
+        if let Some(llm) = avg_llm {
+            println!(
+                "  {}  {}",
+                style("Avg LLM latency   ").dim(),
+                style(format!("{}ms", llm)).white()
+            );
+        }
+        println!();
         if !app_sorted.is_empty() {
-            println!("{}", card_rail());
-            println!("{rail}   {DIM}top apps    {RESET}", rail = card_rail());
+            println!("  {}", style("Top apps").bold());
             for (app, count) in app_sorted.iter().take(5) {
-                let app_disp = if app.len() > 28 {
-                    format!("{}…", &app[..27])
-                } else {
-                    app.to_string()
-                };
-                let noun = if **count == 1 {
-                    "dictation"
-                } else {
-                    "dictations"
-                };
                 println!(
-                    "{rail}      {CREAM}{:<28}{RESET}  {DIM}{} {}{RESET}",
-                    app_disp,
-                    count,
-                    noun,
-                    rail = card_rail(),
+                    "    {}  {}",
+                    style(format!("{:<28}", app)).white(),
+                    style(format!("{} dictations", count)).dim()
                 );
             }
+            println!();
         }
 
         if shown.is_empty() {
-            println!("{}", card_rail());
-            let msg = if search.is_some() || app_filter.is_some() {
-                format!("{WARN}no entries match the filter{RESET}")
+            if search.is_some() || app_filter.is_some() {
+                println!("  {}", style("No entries match the filter.").yellow());
             } else {
-                format!("{DIM}no history yet — start dictating!{RESET}")
-            };
-            println!("{rail}   {}", msg, rail = card_rail());
-            println!("{}", card_bottom(48, None));
+                println!("  {}", style("No history yet — start dictating!").dim());
+            }
             println!();
             return Ok(());
         }
-        if stats {
-            // Stats-only view: stats already printed, no entry list follows.
-            println!("{}", card_bottom(48, None));
-            println!();
-            return Ok(());
+        println!(
+            "  {}  {}",
+            style("Recent").bold(),
+            style("─".repeat(45)).dim()
+        );
+        println!();
+    } else {
+        // Header
+        let mut header = format!(
+            "  {}  {}",
+            style("History").bold(),
+            style("─".repeat(40)).dim()
+        );
+        if let Some(ref q) = search {
+            header = format!(
+                "  {}  {}  {}",
+                style("History").bold(),
+                style("─".repeat(30)).dim(),
+                style(format!("search: \"{}\"", q)).cyan()
+            );
+        } else if let Some(ref app) = app_filter {
+            header = format!(
+                "  {}  {}  {}",
+                style("History").bold(),
+                style("─".repeat(30)).dim(),
+                style(format!("app: \"{}\"", app)).cyan()
+            );
         }
-        // Empty `shown` was handled above; fall through to listing for the
-        // mixed (stats + entries) case.
+        println!("{}", header);
+        println!();
     }
 
-    // Entry listing grouped by date.
+    // Entry listing grouped by date
     let mut last_date = String::new();
     for entry in &shown {
         let date = entry.timestamp.get(..10).unwrap_or("").to_string();
         if date != last_date {
             if !last_date.is_empty() {
-                println!("{}", card_rail());
+                println!();
             }
-            println!(
-                "{rail}   {SUBTLE}{BOLD}{}{RESET}",
-                &date,
-                rail = card_rail()
-            );
+            println!("  {}", style(&date).bold().underlined());
             last_date = date;
         }
 
         let time = entry.timestamp.get(11..16).unwrap_or("--:--");
-        let total_ms = entry.stt_latency_ms + entry.llm_latency_ms.unwrap_or(0);
-        let dot = latency_ansi(total_ms);
         let latency = match entry.llm_latency_ms {
-            Some(llm) => format!(
-                "{}ms STT {sep} {}ms LLM",
-                entry.stt_latency_ms,
-                llm,
-                sep = sep()
-            ),
-            None => format!("{}ms STT", entry.stt_latency_ms),
+            Some(llm) => format!("STT {}ms  LLM {}ms", entry.stt_latency_ms, llm),
+            None => format!("STT {}ms", entry.stt_latency_ms),
         };
         let app_col = if entry.app_context.len() > 18 {
             format!("{}…", &entry.app_context[..17])
@@ -547,56 +539,52 @@ fn cmd_history(
         };
 
         if full {
+            // Full transcript — show raw + formatted on separate lines
             println!(
-                "{rail}   {DIM}{}{RESET}  {dot}●{RESET}  {DIM}{:<18}  {}{RESET}",
-                time,
-                app_col,
-                latency,
-                rail = card_rail(),
+                "  {}  {}  {}",
+                style(time).dim(),
+                style(format!("{:<20}", app_col)).dim(),
+                style(&latency).dim()
             );
-            println!(
-                "{rail}      {CREAM}{}{RESET}",
-                &entry.text,
-                rail = card_rail()
-            );
+            println!("     {}", style(&entry.text).white());
             if entry.raw_transcript != entry.text {
                 println!(
-                    "{rail}      {DIM}raw:  {}{RESET}",
-                    &entry.raw_transcript,
-                    rail = card_rail()
+                    "     {}  {}",
+                    style("raw:").dim(),
+                    style(&entry.raw_transcript).dim()
                 );
             }
         } else {
-            let max_text = 56;
+            let max_text = 58;
             let text = if entry.text.len() > max_text {
                 format!("{}…", &entry.text[..max_text - 1])
             } else {
                 entry.text.clone()
             };
             println!(
-                "{rail}   {DIM}{}{RESET}  {dot}●{RESET}  {CREAM}{:<56}{RESET}  {DIM}{:<18}{RESET}  {DIM}{}{RESET}",
-                time,
-                text,
-                app_col,
-                latency,
-                rail = card_rail(),
+                "  {}  {}  {}  {}",
+                style(time).dim(),
+                style(format!("{:<58}", text)).white(),
+                style(format!("{:<20}", app_col)).dim(),
+                style(&latency).dim(),
             );
         }
     }
-
-    let note = if shown.len() < filtered.len() {
-        format!(
-            "showing {} of {}  {sep}  -c {} for more  {sep}  -i to browse",
+    println!();
+    println!(
+        "  {}",
+        style(format!(
+            "Showing {} of {} entries{}",
             shown.len(),
             filtered.len(),
-            filtered.len(),
-            sep = sep()
-        )
-    } else {
-        format!("showing {}  {sep}  -i to browse", shown.len(), sep = sep())
-    };
-    println!("{}", card_rail());
-    println!("{}", card_bottom(48, Some(&note)));
+            if shown.len() < filtered.len() {
+                format!("  —  use -c {} for more", filtered.len())
+            } else {
+                String::new()
+            }
+        ))
+        .dim()
+    );
     println!();
     Ok(())
 }
@@ -606,28 +594,31 @@ fn cmd_history(
 async fn cmd_doctor() -> Result<()> {
     let config_path = find_config_path();
     let config = load_config_or_default(&config_path);
-    let rail = card_rail();
+    let rule = "─".repeat(48);
 
     println!();
+    // Top: corner + integrated title.
     println!(
-        "{}",
-        card_top("rekody doctor", Some("provider health check"))
+        "  {BRAND}╭─{RESET}  {BRAND_LIGHT}{BOLD}rekody doctor{RESET}  {DIM}provider health check{RESET}"
     );
-    println!("{rail}");
+    println!("  {BRAND}│{RESET}");
 
     // STT check
-    println!("{rail}   {BRAND_LIGHT}{BOLD}STT{RESET}");
+    println!("  {BRAND}│{RESET}   {BRAND_LIGHT}{BOLD}STT{RESET}");
     let stt_name = stt_display_name(&config);
     match config.stt_engine.to_lowercase().as_str() {
         "deepgram" => {
             let key = config.deepgram_api_key.as_deref().unwrap_or("");
             if key.is_empty() {
                 println!(
-                    "{rail}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {sep}  {WARN}no API key{RESET}  {DIM}— rekody key set deepgram{RESET}",
-                    stt_name,
-                    sep = sep()
+                    "  {BRAND}│{RESET}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {WARN}no API key — run: rekody key set deepgram{RESET}",
+                    stt_name
                 );
             } else {
+                println!(
+                    "  {BRAND}│{RESET}     {WARN}{BOLD}…{RESET}  {CREAM}{}{RESET}  {DIM}checking…{RESET}",
+                    stt_name
+                );
                 let t = Instant::now();
                 let ok = reqwest::Client::new()
                     .get("https://api.deepgram.com/v1/projects")
@@ -637,19 +628,17 @@ async fn cmd_doctor() -> Result<()> {
                     .map(|r| r.status().is_success())
                     .unwrap_or(false);
                 let ms = t.elapsed().as_millis();
+                // Overwrite the previous line with the final result.
+                print!("\x1b[1A\x1b[2K");
                 if ok {
-                    let dot = latency_ansi(ms as u64);
                     println!(
-                        "{rail}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}  {sep}  {dot}●{RESET} {DIM}{}ms{RESET}",
-                        stt_name,
-                        ms,
-                        sep = sep()
+                        "  {BRAND}│{RESET}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}  {DIM}{}ms{RESET}",
+                        stt_name, ms
                     );
                 } else {
                     println!(
-                        "{rail}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {sep}  {WARN}auth failed{RESET}  {DIM}— rekody key set deepgram{RESET}",
-                        stt_name,
-                        sep = sep()
+                        "  {BRAND}│{RESET}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {WARN}auth failed — run: rekody key set deepgram{RESET}",
+                        stt_name
                     );
                 }
             }
@@ -665,23 +654,19 @@ async fn cmd_doctor() -> Result<()> {
         }
         _ => {
             println!(
-                "{rail}     {BRAND_LIGHT}○{RESET}  {CREAM}local whisper{RESET}  {sep}  {DIM}no network check needed{RESET}",
-                sep = sep()
+                "  {BRAND}│{RESET}     {BRAND_LIGHT}○{RESET}  {DIM}Local Whisper (no network check needed){RESET}"
             );
         }
     }
-    println!("{rail}");
+    println!("  {BRAND}│{RESET}");
 
     // LLM providers
-    println!("{rail}   {BRAND_LIGHT}{BOLD}LLM{RESET}");
+    println!("  {BRAND}│{RESET}   {BRAND_LIGHT}{BOLD}LLM{RESET}");
     if config.providers.is_empty()
         && config.groq_api_key.is_none()
         && config.cerebras_api_key.is_none()
     {
-        println!(
-            "{rail}     {WARN}{BOLD}!{RESET}  {CREAM}none configured{RESET}  {sep}  {DIM}run: rekody setup{RESET}",
-            sep = sep()
-        );
+        println!("  {BRAND}│{RESET}     {WARN}none configured — run: rekody setup{RESET}");
     } else if !config.providers.is_empty() {
         for p in &config.providers {
             match p.name.as_str() {
@@ -691,20 +676,14 @@ async fn cmd_doctor() -> Result<()> {
                     let ok = reqwest::Client::new().get(url).send().await.is_ok();
                     let ms = t.elapsed().as_millis();
                     if ok {
-                        let dot = latency_ansi(ms as u64);
                         println!(
-                            "{rail}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}{DIM}/{}{RESET}  {sep}  {dot}●{RESET} {DIM}{}ms{RESET}",
-                            p.name,
-                            p.model,
-                            ms,
-                            sep = sep()
+                            "  {BRAND}│{RESET}     {OK}{BOLD}✓{RESET}  {CREAM}{}/{RESET}{DIM}{}{RESET}  {DIM}{}ms{RESET}",
+                            p.name, p.model, ms
                         );
                     } else {
                         println!(
-                            "{rail}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}{DIM}/{}{RESET}  {sep}  {WARN}not running{RESET}",
-                            p.name,
-                            p.model,
-                            sep = sep()
+                            "  {BRAND}│{RESET}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}/{RESET}{DIM}{}{RESET}  {WARN}not running{RESET}",
+                            p.name, p.model
                         );
                     }
                 }
@@ -743,37 +722,36 @@ async fn cmd_doctor() -> Result<()> {
                 .await;
         }
     }
-    println!("{rail}");
+    println!("  {BRAND}│{RESET}");
 
     // System
-    println!("{rail}   {BRAND_LIGHT}{BOLD}system{RESET}");
+    println!("  {BRAND}│{RESET}   {BRAND_LIGHT}{BOLD}System{RESET}");
     #[cfg(target_os = "macos")]
     {
         let mic = check_macos_permission("kTCCServiceMicrophone");
         let acc = check_macos_permission("kTCCServiceAccessibility");
-        print_permission("microphone", mic);
-        print_permission("accessibility", acc);
+        print_permission("Microphone", mic);
+        print_permission("Accessibility", acc);
     }
     #[cfg(not(target_os = "macos"))]
     {
         println!(
-            "{rail}     {BRAND_LIGHT}○{RESET}  {DIM}system checks not available on this platform{RESET}"
+            "  {BRAND}│{RESET}     {BRAND_LIGHT}○{RESET}  {DIM}System checks not available on this platform{RESET}"
         );
     }
-    println!("{rail}");
-    println!("{}", card_bottom(48, None));
+    println!("  {BRAND}│{RESET}");
+    // Bottom: corner + rule, closing the card.
+    println!("  {BRAND}╰{}{RESET}", rule);
     println!();
 
     Ok(())
 }
 
 async fn check_openai_compat_provider(label: &str, url: &str, key: &str) {
-    let rail = card_rail();
     if key.is_empty() {
         println!(
-            "{rail}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {sep}  {WARN}no API key{RESET}  {DIM}— rekody key set <provider>{RESET}",
-            label,
-            sep = sep()
+            "  {BRAND}│{RESET}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {WARN}no API key — run: rekody key set <provider>{RESET}",
+            label
         );
         return;
     }
@@ -787,29 +765,23 @@ async fn check_openai_compat_provider(label: &str, url: &str, key: &str) {
         .unwrap_or(false);
     let ms = t.elapsed().as_millis();
     if ok {
-        let dot = latency_ansi(ms as u64);
         println!(
-            "{rail}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}  {sep}  {dot}●{RESET} {DIM}{}ms{RESET}",
-            label,
-            ms,
-            sep = sep()
+            "  {BRAND}│{RESET}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}  {DIM}{}ms{RESET}",
+            label, ms
         );
     } else {
         println!(
-            "{rail}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {sep}  {WARN}auth failed{RESET}  {DIM}— check your API key{RESET}",
-            label,
-            sep = sep()
+            "  {BRAND}│{RESET}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {WARN}auth failed — check your API key{RESET}",
+            label
         );
     }
 }
 
 async fn check_openai_compat_provider_keyed(label: &str, url: &str, key: &str, header: &str) {
-    let rail = card_rail();
     if key.is_empty() {
         println!(
-            "{rail}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {sep}  {WARN}no API key{RESET}",
-            label,
-            sep = sep()
+            "  {BRAND}│{RESET}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {WARN}no API key{RESET}",
+            label
         );
         return;
     }
@@ -823,18 +795,14 @@ async fn check_openai_compat_provider_keyed(label: &str, url: &str, key: &str, h
         .unwrap_or(false);
     let ms = t.elapsed().as_millis();
     if ok {
-        let dot = latency_ansi(ms as u64);
         println!(
-            "{rail}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}  {sep}  {dot}●{RESET} {DIM}{}ms{RESET}",
-            label,
-            ms,
-            sep = sep()
+            "  {BRAND}│{RESET}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}  {DIM}{}ms{RESET}",
+            label, ms
         );
     } else {
         println!(
-            "{rail}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {sep}  {WARN}auth failed{RESET}  {DIM}— check your API key{RESET}",
-            label,
-            sep = sep()
+            "  {BRAND}│{RESET}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {WARN}auth failed — check your API key{RESET}",
+            label
         );
     }
 }
@@ -885,30 +853,29 @@ enum MicCheck {
 
 #[cfg(target_os = "macos")]
 fn print_permission(name: &str, status: MicCheck) {
-    let rail = card_rail();
     match status {
         MicCheck::Granted => {
-            println!("{rail}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}", name);
+            println!(
+                "  {BRAND}│{RESET}     {OK}{BOLD}✓{RESET}  {CREAM}{}{RESET}",
+                name
+            );
         }
         MicCheck::Denied => {
             println!(
-                "{rail}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {sep}  {WARN}open System Settings → Privacy{RESET}",
-                name,
-                sep = sep()
+                "  {BRAND}│{RESET}     {SLOW}{BOLD}✗{RESET}  {CREAM}{}{RESET}  {WARN}open System Settings → Privacy{RESET}",
+                name
             );
         }
         MicCheck::NoDevice => {
             println!(
-                "{rail}     {WARN}{BOLD}…{RESET}  {CREAM}{}{RESET}  {sep}  {DIM}no input device detected{RESET}",
-                name,
-                sep = sep()
+                "  {BRAND}│{RESET}     {WARN}{BOLD}…{RESET}  {CREAM}{}{RESET}  {DIM}no input device detected{RESET}",
+                name
             );
         }
         MicCheck::Unknown => {
             println!(
-                "{rail}     {WARN}{BOLD}…{RESET}  {CREAM}{}{RESET}  {sep}  {DIM}could not probe — try recording{RESET}",
-                name,
-                sep = sep()
+                "  {BRAND}│{RESET}     {WARN}{BOLD}…{RESET}  {CREAM}{}{RESET}  {DIM}could not probe — try recording to test{RESET}",
+                name
             );
         }
     }
@@ -925,18 +892,14 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     const CURRENT: &str = env!("CARGO_PKG_VERSION");
     const REPO: &str = "rekody/rekody";
 
-    let subtitle = if check_only {
-        "release check"
-    } else {
-        "self-update"
-    };
     println!();
-    println!("{}", card_top("rekody update", Some(subtitle)));
-    println!("{}", card_rail());
     println!(
-        "{rail}   {DIM}current     {RESET}  {CREAM}{BOLD}v{CURRENT}{RESET}",
-        rail = card_rail()
+        "  {}  {}",
+        style("Update").bold(),
+        style("─".repeat(42)).dim()
     );
+    println!("  Current version: {}", style(format!("v{CURRENT}")).cyan());
+    print!("  Checking latest release… ");
 
     let client = reqwest::Client::builder()
         .user_agent("rekody-updater")
@@ -946,13 +909,8 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     let resp = client.get(&url).send().await?;
 
     if !resp.status().is_success() {
-        println!(
-            "{rail}   {SLOW}{BOLD}✗{RESET}  {CREAM}could not reach GitHub{RESET}  {sep}  {DIM}check your connection{RESET}",
-            rail = card_rail(),
-            sep = sep()
-        );
-        println!("{}", card_bottom(48, None));
-        println!();
+        println!("{}", style("failed").red());
+        println!("  Could not reach GitHub. Check your internet connection.");
         return Ok(());
     }
 
@@ -962,10 +920,17 @@ async fn cmd_update(check_only: bool) -> Result<()> {
         .unwrap_or("")
         .trim_start_matches('v');
 
-    println!(
-        "{rail}   {DIM}latest      {RESET}  {CREAM}{BOLD}v{latest_tag}{RESET}",
-        rail = card_rail()
-    );
+    println!("{}", style(format!("v{latest_tag}")).cyan());
+
+    if latest_tag == CURRENT {
+        println!();
+        println!(
+            "  {} You're already on the latest version.",
+            style("✓").green()
+        );
+        println!();
+        return Ok(());
+    }
 
     // Simple semver comparison (major.minor.patch)
     fn parse_ver(s: &str) -> (u64, u64, u64) {
@@ -977,38 +942,35 @@ async fn cmd_update(check_only: bool) -> Result<()> {
         )
     }
 
-    if latest_tag == CURRENT || parse_ver(latest_tag) <= parse_ver(CURRENT) {
-        println!("{}", card_rail());
+    if parse_ver(latest_tag) <= parse_ver(CURRENT) {
+        println!();
         println!(
-            "{rail}   {OK}{BOLD}✓{RESET}  {CREAM}already on the latest version{RESET}",
-            rail = card_rail()
+            "  {} You're already on the latest version.",
+            style("✓").green()
         );
-        println!("{}", card_bottom(48, None));
         println!();
         return Ok(());
     }
 
     println!(
-        "{rail}   {DIM}status      {RESET}  {WARN}{BOLD}update available{RESET}  {sep}  {DIM}v{} → v{}{RESET}",
+        "  {} v{} → v{}",
+        style("Update available:").yellow().bold(),
         CURRENT,
-        latest_tag,
-        rail = card_rail(),
-        sep = sep()
+        latest_tag
     );
 
-    // Resolve where the running binary actually lives, following symlinks.
+    // Resolve where the running binary actually lives, following symlinks
+    // (e.g. /opt/homebrew/bin/rekody → Cellar/...). Hardcoding
+    // /usr/local/bin/rekody silently desynced any install outside that path.
     let install_path = match std::env::current_exe().and_then(|p| p.canonicalize()) {
         Ok(p) => p,
         Err(e) => {
-            println!("{}", card_rail());
-            println!(
-                "{rail}   {SLOW}{BOLD}✗{RESET}  {CREAM}could not resolve current binary{RESET}  {sep}  {DIM}{}{RESET}",
-                e,
-                rail = card_rail(),
-                sep = sep()
-            );
-            println!("{}", card_bottom(48, None));
             println!();
+            println!(
+                "  {} Could not resolve current binary path: {}",
+                style("✗").red(),
+                e
+            );
             return Ok(());
         }
     };
@@ -1016,36 +978,28 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     let owned_by_brew = is_homebrew_install(&install_path);
 
     if check_only {
+        println!();
         let cmd = if owned_by_brew {
             "brew upgrade rekody"
         } else {
             "rekody update"
         };
-        println!("{}", card_rail());
-        println!(
-            "{}",
-            card_bottom(48, Some(&format!("run `{}` to install", cmd)))
-        );
+        println!("  Run {} to install it.", style(cmd).cyan());
         println!();
         return Ok(());
     }
 
-    // Defer to package manager when one owns this install.
+    // Defer to the package manager when one owns this install — overwriting
+    // its files breaks `brew upgrade` / `brew uninstall` bookkeeping.
     if owned_by_brew {
-        println!("{}", card_rail());
-        println!(
-            "{rail}   {BRAND_LIGHT}{BOLD}ℹ{RESET}  {CREAM}managed by Homebrew{RESET}",
-            rail = card_rail()
-        );
-        println!(
-            "{}",
-            card_bottom(48, Some("run `brew upgrade rekody` to upgrade"))
-        );
+        println!();
+        println!("  {} rekody was installed via Homebrew.", style("ℹ").cyan());
+        println!("  Run {} to upgrade.", style("brew upgrade rekody").cyan());
         println!();
         return Ok(());
     }
 
-    println!("{}", card_rail());
+    println!();
 
     // Detect platform/arch
     let os = std::env::consts::OS;
@@ -1054,20 +1008,8 @@ async fn cmd_update(check_only: bool) -> Result<()> {
         "macos" => "macos",
         "linux" => "linux",
         other => {
-            println!(
-                "{rail}   {SLOW}{BOLD}✗{RESET}  {CREAM}unsupported OS{RESET}  {sep}  {DIM}{}{RESET}",
-                other,
-                rail = card_rail(),
-                sep = sep()
-            );
-            println!(
-                "{}",
-                card_bottom(
-                    48,
-                    Some(&format!("download from github.com/{REPO}/releases"))
-                )
-            );
-            println!();
+            println!("  {} Unsupported OS: {}", style("✗").red(), other);
+            println!("  Download manually from: https://github.com/{REPO}/releases");
             return Ok(());
         }
     };
@@ -1075,14 +1017,7 @@ async fn cmd_update(check_only: bool) -> Result<()> {
         "aarch64" => "aarch64",
         "x86_64" => "x86_64",
         other => {
-            println!(
-                "{rail}   {SLOW}{BOLD}✗{RESET}  {CREAM}unsupported arch{RESET}  {sep}  {DIM}{}{RESET}",
-                other,
-                rail = card_rail(),
-                sep = sep()
-            );
-            println!("{}", card_bottom(48, None));
-            println!();
+            println!("  {} Unsupported arch: {}", style("✗").red(), other);
             return Ok(());
         }
     };
@@ -1091,50 +1026,24 @@ async fn cmd_update(check_only: bool) -> Result<()> {
     let download_url =
         format!("https://github.com/{REPO}/releases/download/v{latest_tag}/{tarball}");
 
-    println!(
-        "{rail}   {BRAND_LIGHT}{BOLD}↓{RESET}  {CREAM}downloading{RESET}  {sep}  {DIM}{}{RESET}",
-        tarball,
-        rail = card_rail(),
-        sep = sep()
-    );
+    println!("  Downloading {}…", style(&tarball).dim());
 
     let resp = client.get(&download_url).send().await?;
     if !resp.status().is_success() {
         println!(
-            "{rail}   {SLOW}{BOLD}✗{RESET}  {CREAM}download failed{RESET}  {sep}  {DIM}HTTP {}{RESET}",
-            resp.status(),
-            rail = card_rail(),
-            sep = sep()
+            "  {} Download failed (HTTP {}) — try: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash",
+            style("✗").red(),
+            resp.status()
         );
-        println!(
-            "{}",
-            card_bottom(
-                48,
-                Some(&format!(
-                    "fallback: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash"
-                ))
-            )
-        );
-        println!();
         return Ok(());
     }
     let bytes = resp.bytes().await?;
     // gzip magic bytes: 1f 8b
     if bytes.len() < 2 || bytes[0] != 0x1f || bytes[1] != 0x8b {
         println!(
-            "{rail}   {SLOW}{BOLD}✗{RESET}  {CREAM}invalid gzip archive{RESET}",
-            rail = card_rail()
+            "  {} Download did not return a valid gzip archive — try: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash",
+            style("✗").red()
         );
-        println!(
-            "{}",
-            card_bottom(
-                48,
-                Some(&format!(
-                    "fallback: curl -fsSL https://raw.githubusercontent.com/{REPO}/main/install.sh | bash"
-                ))
-            )
-        );
-        println!();
         return Ok(());
     }
 
@@ -1154,18 +1063,16 @@ async fn cmd_update(check_only: bool) -> Result<()> {
         .status()?;
 
     if !status.success() {
-        println!(
-            "{rail}   {SLOW}{BOLD}✗{RESET}  {CREAM}failed to extract tarball{RESET}",
-            rail = card_rail()
-        );
-        println!("{}", card_bottom(48, None));
-        println!();
+        println!("  {} Failed to extract tarball.", style("✗").red());
         return Ok(());
     }
 
     let new_bin = tmp.join("rekody");
 
-    // Atomic replace via rename (works while the running binary is in-use on POSIX).
+    // Atomic replace: stage next to the target, then rename over it. On POSIX
+    // rename() swaps inodes atomically and works even though we're replacing
+    // the running binary (the live process keeps the old inode). Direct
+    // fs::copy onto a running executable fails with ETXTBSY on Linux.
     let staged = install_path.with_file_name(format!(
         ".rekody.update-{}.{}",
         latest_tag,
@@ -1177,6 +1084,7 @@ async fn cmd_update(check_only: bool) -> Result<()> {
         .is_ok();
 
     if !install_ok {
+        // Clean up the staged file before falling back so we don't leave litter.
         let _ = std::fs::remove_file(&staged);
         let sudo = std::process::Command::new("sudo")
             .args([
@@ -1189,12 +1097,10 @@ async fn cmd_update(check_only: bool) -> Result<()> {
             .status()?;
         if !sudo.success() {
             println!(
-                "{rail}   {SLOW}{BOLD}✗{RESET}  {CREAM}could not write to {}{RESET}",
-                install_path.display(),
-                rail = card_rail()
+                "  {} Could not write to {}. Try running with sudo.",
+                style("✗").red(),
+                install_path.display()
             );
-            println!("{}", card_bottom(48, Some("try running with sudo")));
-            println!();
             return Ok(());
         }
     } else {
@@ -1205,16 +1111,12 @@ async fn cmd_update(check_only: bool) -> Result<()> {
 
     let _ = std::fs::remove_dir_all(&tmp);
 
+    println!();
     println!(
-        "{rail}   {OK}{BOLD}✓{RESET}  {CREAM}updated to {BRAND_LIGHT}v{}{CREAM}{RESET}  {sep}  {DIM}was v{}{RESET}",
-        latest_tag,
-        CURRENT,
-        rail = card_rail(),
-        sep = sep()
-    );
-    println!(
-        "{}",
-        card_bottom(48, Some("restart any running rekody process"))
+        "  {} Updated to {}  (was {})",
+        style("✓").green().bold(),
+        style(format!("v{latest_tag}")).cyan().bold(),
+        style(format!("v{CURRENT}")).dim()
     );
     println!();
     Ok(())
@@ -1226,43 +1128,44 @@ fn cmd_key(action: KeyCmd) -> Result<()> {
     match action {
         KeyCmd::Set { provider } => {
             use std::io::{self, Write};
-            println!();
             print!(
-                "  {BRAND_LIGHT}{BOLD}rekody key{RESET}  {sep}  {DIM}enter API key for{RESET}  {CREAM}{BOLD}{}{RESET}  {DIM}(hidden):{RESET} ",
-                provider,
-                sep = sep()
+                "  {} API key for {}: ",
+                style("Enter").bold(),
+                style(&provider).cyan().bold()
             );
             io::stdout().flush()?;
+            // Read without echo
             let key = rpassword_read_password(&provider)?;
             if key.trim().is_empty() {
-                println!("\n  {WARN}{BOLD}!{RESET}  {CREAM}no key entered — aborted{RESET}\n");
+                println!("\n  {}", style("No key entered — aborted.").yellow());
                 return Ok(());
             }
             save_keychain_key(&provider, key.trim())?;
             println!(
-                "\n  {OK}{BOLD}✓{RESET}  {CREAM}{} key saved{RESET}  {sep}  {DIM}macOS keychain{RESET}\n",
-                provider,
-                sep = sep()
+                "\n  {}  {} key saved.",
+                style("✓").green().bold(),
+                style(&provider).white()
             );
         }
-        KeyCmd::Delete { provider } => {
-            println!();
-            match delete_keychain_key(&provider) {
-                Ok(_) => println!(
-                    "  {OK}{BOLD}✓{RESET}  {CREAM}{} key deleted{RESET}\n",
-                    provider
-                ),
-                Err(_) => println!(
-                    "  {DIM}○  no key found for{RESET}  {CREAM}{}{RESET}\n",
-                    provider
-                ),
-            }
-        }
+        KeyCmd::Delete { provider } => match delete_keychain_key(&provider) {
+            Ok(_) => println!(
+                "  {}  {} key deleted.",
+                style("✓").green().bold(),
+                style(&provider).white()
+            ),
+            Err(_) => println!(
+                "  {}  No key found for {}.",
+                style("○").dim(),
+                style(&provider).white()
+            ),
+        },
         KeyCmd::List => {
-            let rail = card_rail();
+            let rule = "─".repeat(48);
             println!();
-            println!("{}", card_top("rekody keys", Some("keychain status")));
-            println!("{rail}");
+            println!(
+                "  {BRAND}╭─{RESET}  {BRAND_LIGHT}{BOLD}rekody keys{RESET}  {DIM}keychain status{RESET}"
+            );
+            println!("  {BRAND}│{RESET}");
             let providers = &[
                 "groq",
                 "deepgram",
@@ -1279,29 +1182,25 @@ fn cmd_key(action: KeyCmd) -> Result<()> {
                 match get_keychain_key(p) {
                     Ok(key) if !key.is_empty() => {
                         println!(
-                            "{rail}   {OK}{BOLD}✓{RESET}  {CREAM}{BOLD}{:<11}{RESET}  {sep}  {DIM}{}{RESET}",
+                            "  {BRAND}│{RESET}   {CREAM}{BOLD}{:<11}{RESET}  {OK}✓ stored{RESET}  {DIM}{}{RESET}",
                             p,
-                            mask_key(&key),
-                            sep = sep()
+                            mask_key(&key)
                         );
                         any = true;
                     }
                     _ => {
-                        println!(
-                            "{rail}   {DIM}○  {:<11}{RESET}  {sep}  {DIM}—{RESET}",
-                            p,
-                            sep = sep()
-                        );
+                        println!("  {BRAND}│{RESET}   {CREAM}{:<11}{RESET}  {DIM}—{RESET}", p);
                     }
                 }
             }
-            println!("{rail}");
-            let footer = if any {
-                None
-            } else {
-                Some("no keys stored — rekody key set <provider>")
-            };
-            println!("{}", card_bottom(48, footer));
+            if !any {
+                println!("  {BRAND}│{RESET}");
+                println!(
+                    "  {BRAND}│{RESET}   {DIM}No keys stored. Run: rekody key set <provider>{RESET}"
+                );
+            }
+            println!("  {BRAND}│{RESET}");
+            println!("  {BRAND}╰{}{RESET}", rule);
             println!();
         }
     }
@@ -1520,11 +1419,14 @@ fn inject_keychain_keys(config: &mut RekodyConfig) {
 // ── Startup banner ───────────────────────────────────────────────────────────
 
 fn print_banner(config: &RekodyConfig) {
-    // Card-style banner: brand-teal left rail + integrated title, closed by a
-    // bottom rule. The right edge is open so we never have to do ANSI-aware
-    // width math. The card anchors the info block; the inline status line
-    // below it stays unbordered to read as a live element, not a panel row.
-    let rail = card_rail();
+    // Card-style banner: a brand-teal left rail + integrated title, closed
+    // with a bottom rule. The right edge is open (no right border) so we
+    // never have to do ANSI-aware width math. The card structure anchors the
+    // info block; the inline status line below it stays unbordered to read
+    // as a live element rather than another panel row.
+    const RULE_W: usize = 48;
+    let rule = "─".repeat(RULE_W);
+
     let stt = stt_display_name(config);
 
     let llm_active = rekody_core::has_llm_providers(config);
@@ -1552,16 +1454,25 @@ fn print_banner(config: &RekodyConfig) {
     };
 
     println!();
+    // Top: corner + integrated title.
     println!(
-        "{}",
-        card_top("rekody", Some(&format!("v{}", env!("CARGO_PKG_VERSION"))))
+        "  {BRAND}╭─{RESET}  {BRAND_LIGHT}{BOLD}rekody{RESET}  {DIM}v{}{RESET}",
+        env!("CARGO_PKG_VERSION"),
     );
-    println!("{rail}");
-    println!("{rail}   {DIM}STT  {RESET}  {CREAM}{BOLD}{}{RESET}", stt);
-    println!("{rail}   {DIM}LLM  {RESET}  {}", llm_line);
-    println!("{rail}   {DIM}mode {RESET}  {CREAM}{}{RESET}", mode_short);
-    println!("{rail}");
-    println!("{}", card_bottom(48, None));
+    println!("  {BRAND}│{RESET}");
+    // Body: left rail + content rows.
+    println!(
+        "  {BRAND}│{RESET}   {DIM}STT  {RESET}  {CREAM}{BOLD}{}{RESET}",
+        stt
+    );
+    println!("  {BRAND}│{RESET}   {DIM}LLM  {RESET}  {}", llm_line);
+    println!(
+        "  {BRAND}│{RESET}   {DIM}Mode {RESET}  {CREAM}{}{RESET}",
+        mode_short
+    );
+    println!("  {BRAND}│{RESET}");
+    // Bottom: corner + rule, closing the card.
+    println!("  {BRAND}╰{}{RESET}", rule);
     println!();
 }
 
@@ -1608,8 +1519,33 @@ impl SessionStats {
 // ── Spinner style helpers ────────────────────────────────────────────────────
 //
 // Inline status panel for the live dictation pipeline. Stays one line tall so
-// the terminal remains usable around it. Palette and dot semantics live in
-// `rekody_core::ui` and are shared with the history TUI.
+// the terminal remains usable around it. Visual language matches the rekody
+// brand palette: brand teal #20808D (BRAND), lighter teal #4FB8C5 (BRAND_LIGHT),
+// cream #FBFAF4 (CREAM) for emphasis text, dim gray for secondary labels.
+// Latency dot semantics match the history TUI: <5s green, <15s amber, else red.
+
+const BRAND: &str = "\x1b[38;2;32;128;141m"; // #20808D
+const BRAND_LIGHT: &str = "\x1b[38;2;79;184;197m"; // #4FB8C5
+const CREAM: &str = "\x1b[38;2;251;250;244m"; // #FBFAF4
+const DIM: &str = "\x1b[38;2;119;119;119m";
+const SUBTLE: &str = "\x1b[38;2;85;85;85m";
+const OK: &str = "\x1b[38;2;107;203;119m";
+const WARN: &str = "\x1b[38;2;230;180;80m";
+const SLOW: &str = "\x1b[38;2;217;107;107m";
+const BOLD: &str = "\x1b[1m";
+const RESET: &str = "\x1b[0m";
+
+fn latency_color(total_ms: u64) -> &'static str {
+    match total_ms {
+        0..=4_999 => OK,
+        5_000..=14_999 => WARN,
+        _ => SLOW,
+    }
+}
+
+fn sep() -> String {
+    format!("{DIM}·{RESET}")
+}
 
 /// Single shared style used for every state — avoids the new-line glitch
 /// caused by swapping styles while `enable_steady_tick` is running.
@@ -1665,7 +1601,7 @@ fn set_done_style(spinner: &ProgressBar, text: &str, stt_ms: &str, llm_ms: Optio
     let stt_num: u64 = stt_ms.parse().unwrap_or(0);
     let llm_num: u64 = llm_ms.and_then(|s| s.parse().ok()).unwrap_or(0);
     let total = stt_num + llm_num;
-    let dot_color = latency_ansi(total);
+    let dot_color = latency_color(total);
     let lat = match llm_ms {
         Some(l) => format!("{stt_ms}ms STT {sep} {l}ms LLM", sep = sep()),
         None => format!("{stt_ms}ms STT"),
