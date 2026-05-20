@@ -11,6 +11,11 @@ use std::process::Command;
 use anyhow::{Context, Result};
 use cliclack::{confirm, input, intro, outro, select, spinner};
 
+use crate::ui::{
+    BOLD, BRAND_LIGHT, CREAM_ANSI as CREAM, DIM_ANSI as DIM, OK_ANSI as OK, RESET,
+    SLOW_ANSI as SLOW, WARN_ANSI as WARN, sep,
+};
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -90,7 +95,11 @@ pub fn run_onboarding() -> Result<()> {
     // --- API key — check Keychain first ----------------------------------
     let api_key: String = if needs_key {
         if let Some(masked) = get_keychain_masked(provider_name) {
-            println!("  Found in Keychain: {masked}");
+            println!(
+                "  {DIM}found in keychain{RESET}  {sep}  {CREAM}{}{RESET}",
+                masked,
+                sep = sep()
+            );
             let use_existing: bool = confirm("Use existing key? (No = enter a new one)")
                 .initial_value(true)
                 .interact()
@@ -202,7 +211,11 @@ pub fn run_onboarding() -> Result<()> {
     // Deepgram needs its own API key — check Keychain first
     let deepgram_api_key: Option<String> = if stt_engine == "deepgram" {
         if let Some(masked) = get_keychain_masked("deepgram") {
-            println!("  Found in Keychain: {masked}");
+            println!(
+                "  {DIM}found in keychain{RESET}  {sep}  {CREAM}{}{RESET}",
+                masked,
+                sep = sep()
+            );
             let use_existing: bool = confirm("Use existing key? (No = enter a new one)")
                 .initial_value(true)
                 .interact()
@@ -351,19 +364,15 @@ pub fn run_onboarding() -> Result<()> {
         // dialog via AXIsProcessTrustedWithOptions(prompt=true), which also
         // adds /usr/local/bin/rekody to the Accessibility list.
         if rekody_hotkey::is_accessibility_trusted() {
-            println!(
-                "  {} Accessibility permission already granted.",
-                console::style("✓").green().bold()
-            );
+            println!("  {OK}{BOLD}✓{RESET}  {CREAM}accessibility permission granted{RESET}");
         } else {
-            println!(
-                "  {} Accessibility permission not granted.",
-                console::style("✗").red().bold()
-            );
-            println!("  rekody needs Accessibility to capture ⌥Space system-wide.");
+            println!("  {SLOW}{BOLD}✗{RESET}  {CREAM}accessibility permission not granted{RESET}");
+            println!("     {DIM}rekody needs accessibility to capture ⌥Space system-wide.{RESET}");
             println!();
-            println!("  A macOS dialog will appear asking you to open System Settings.");
-            println!("  After granting permission, restart rekody.");
+            println!(
+                "     {DIM}a macOS dialog will appear asking you to open System Settings.{RESET}"
+            );
+            println!("     {DIM}after granting permission, restart rekody.{RESET}");
             println!();
 
             // Trigger the system prompt (adds rekody to the Accessibility list).
@@ -388,34 +397,26 @@ pub fn run_onboarding() -> Result<()> {
         // name, not rekody. That's expected and correct under TCC rules.
         match rekody_audio::probe_microphone() {
             rekody_audio::MicStatus::Granted => {
-                println!(
-                    "  {} Microphone permission granted.",
-                    console::style("✓").green().bold()
-                );
+                println!("  {OK}{BOLD}✓{RESET}  {CREAM}microphone permission granted{RESET}");
             }
             rekody_audio::MicStatus::Denied => {
-                println!(
-                    "  {} Microphone permission denied.",
-                    console::style("✗").red().bold()
-                );
-                println!(
-                    "  Grant access to your terminal in System Settings → Privacy & Security → Microphone,"
-                );
-                println!("  then restart rekody.");
+                println!("  {SLOW}{BOLD}✗{RESET}  {CREAM}microphone permission denied{RESET}");
+                println!("     {DIM}grant access to your terminal in System Settings →{RESET}");
+                println!("     {DIM}Privacy & Security → Microphone, then restart rekody.{RESET}");
                 let _ = Command::new("open")
                     .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
                     .status();
             }
             rekody_audio::MicStatus::NoDevice => {
                 println!(
-                    "  {} No microphone detected. Connect one and re-run `rekody setup`.",
-                    console::style("!").yellow().bold()
+                    "  {WARN}{BOLD}!{RESET}  {CREAM}no microphone detected{RESET}  {sep}  {DIM}connect one and re-run rekody setup{RESET}",
+                    sep = sep()
                 );
             }
             rekody_audio::MicStatus::Unknown => {
                 println!(
-                    "  {} Microphone probe inconclusive — will prompt on first recording.",
-                    console::style("?").yellow().bold()
+                    "  {WARN}{BOLD}?{RESET}  {CREAM}microphone probe inconclusive{RESET}  {sep}  {DIM}will prompt on first recording{RESET}",
+                    sep = sep()
                 );
             }
         }
@@ -423,7 +424,7 @@ pub fn run_onboarding() -> Result<()> {
 
     // --- Step 3b: Hotkey selection ---------------------------------------
     println!();
-    println!("  {}", console::style("Hotkey").bold());
+    println!("  {BRAND_LIGHT}{BOLD}hotkey{RESET}");
 
     let trigger_key: &str = select("Choose your dictation trigger key")
         .item(
@@ -443,11 +444,13 @@ pub fn run_onboarding() -> Result<()> {
     if trigger_key == "fn_key" {
         println!();
         println!(
-            "  {} Action required: set System Settings → Keyboard →",
-            console::style("!").yellow().bold()
+            "  {WARN}{BOLD}!{RESET}  {CREAM}action required{RESET}  {sep}  {DIM}System Settings → Keyboard{RESET}",
+            sep = sep()
         );
-        println!("    \"Press 🌐 key to\" → \"Do Nothing\"");
-        println!("    Otherwise macOS may intercept the Fn key before rekody sees it.");
+        println!("     {DIM}\"Press 🌐 key to\" → \"Do Nothing\"{RESET}");
+        println!(
+            "     {DIM}otherwise macOS may intercept the Fn key before rekody sees it.{RESET}"
+        );
         let _ = Command::new("open")
             .arg("x-apple.systempreferences:com.apple.preference.keyboard")
             .status();
@@ -701,7 +704,10 @@ const EXPECTED_CHECKSUMS: &[(&str, &str)] = &[
 /// or if `expected_sha256` is empty (skipped).
 fn verify_model_checksum(path: &str, expected_sha256: &str) -> bool {
     if expected_sha256.is_empty() {
-        println!("  Checksum verification skipped (no expected hash configured).");
+        println!(
+            "  {DIM}○  checksum verification skipped{RESET}  {sep}  {DIM}no expected hash configured{RESET}",
+            sep = sep()
+        );
         return true;
     }
 
@@ -717,20 +723,27 @@ fn verify_model_checksum(path: &str, expected_sha256: &str) -> bool {
             // Output format: "<hash>  <filename>\n" — grab the first token.
             let actual_hash = stdout.split_whitespace().next().unwrap_or("");
             if actual_hash.eq_ignore_ascii_case(expected_sha256) {
-                println!("  Checksum verified (SHA-256 matches).");
+                println!(
+                    "  {OK}{BOLD}✓{RESET}  {CREAM}checksum verified{RESET}  {sep}  {DIM}SHA-256 matches{RESET}",
+                    sep = sep()
+                );
                 true
             } else {
-                println!("  WARNING: SHA-256 checksum mismatch!");
-                println!("    Expected: {}", expected_sha256);
-                println!("    Actual:   {}", actual_hash);
-                println!("    The model file may have been updated upstream.");
-                println!("    If you trust the source, you can ignore this warning.");
+                println!("  {WARN}{BOLD}!{RESET}  {CREAM}SHA-256 checksum mismatch{RESET}");
+                println!("     {DIM}expected:  {}{RESET}", expected_sha256);
+                println!("     {DIM}actual:    {}{RESET}", actual_hash);
+                println!(
+                    "     {DIM}the model file may have been updated upstream — if you trust the source, ignore this.{RESET}"
+                );
                 false
             }
         }
         _ => {
-            println!("  WARNING: Could not compute SHA-256 checksum (shasum/sha256sum not found).");
-            println!("  You can verify manually with: shasum -a 256 {}", path);
+            println!(
+                "  {WARN}{BOLD}!{RESET}  {CREAM}could not compute SHA-256{RESET}  {sep}  {DIM}shasum/sha256sum not found{RESET}",
+                sep = sep()
+            );
+            println!("     {DIM}verify manually:  shasum -a 256 {}{RESET}", path);
             false
         }
     }
