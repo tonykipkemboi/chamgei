@@ -1,7 +1,7 @@
 {
   "framework": "astro",
-  "installCommand": "pnpm install",
-  "buildCommand": "pnpm run build",
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": false,
