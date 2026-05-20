@@ -2076,7 +2076,6 @@ dependencies = [
  "arboard",
  "clap",
  "cliclack",
- "console 0.15.11",
  "crossterm",
  "dirs",
  "indicatif 0.17.11",
