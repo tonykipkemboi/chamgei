@@ -3,19 +3,14 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.3.7",
-  "engines": {
-    "node": ">=22.12"
-  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
-    "test": "playwright test"
+    "preview": "astro preview"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
-    "astro": "^6.1.10"
+    "astro": "^5.18.1"
   },
   "devDependencies": {
     "@astrojs/sitemap": "^3.7.2",
